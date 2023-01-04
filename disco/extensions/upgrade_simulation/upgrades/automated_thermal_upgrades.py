@@ -176,6 +176,7 @@ def determine_thermal_upgrades(
         logger.info(f"Iteration_{iteration_counter}: Determined line loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of line violations: {len(overloaded_line_list)}")
         before_upgrade_num_line_violations = len(overloaded_line_list)
+        breakpoint()
         if len(overloaded_line_list) > 0:            
             line_commands_list, temp_line_upgrades_df = correct_line_violations(
                 line_loading_df=line_loading_df,
@@ -192,6 +193,7 @@ def determine_thermal_upgrades(
         logger.info(f"Iteration_{iteration_counter}: Determined xfmr loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of xfmr violations: {len(overloaded_xfmr_list)}")
         before_upgrade_num_xfmr_violations = len(overloaded_xfmr_list)
+        breakpoint()
         
         if len(overloaded_xfmr_list) > 0:
             xfmr_commands_list, temp_xfmr_upgrades_df = correct_xfmr_violations(
@@ -246,6 +248,7 @@ def determine_thermal_upgrades(
                                                 equipment_type="transformer", **simulation_params)
     line_loading_df = get_thermal_equipment_info(compute_loading=True, upper_limit=thermal_config["line_upper_limit"], 
                                                 equipment_type="line", ignore_switch=ignore_switch, **simulation_params)
+    breakpoint()
     overloaded_xfmr_list = list(xfmr_loading_df.loc[xfmr_loading_df["status"] == "overloaded"]["name"].unique())
     overloaded_line_list = list(line_loading_df.loc[line_loading_df["status"] == "overloaded"]["name"].unique())
     # same equipment could be upgraded(edited) multiple times. Only consider last upgrade edit done. original_equipment details are currently not used.

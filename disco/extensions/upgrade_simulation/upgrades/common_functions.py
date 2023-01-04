@@ -944,13 +944,14 @@ def determine_line_placement(line_series):
     info_dict = {}
     info_dict["line_placement"] = None
     line_placement = None
-    # use linetype property to determine line_placement
-    if ("LineType" in line_series) and (line_series["LineType"] in ["oh", "ug"]):
-        if line_series["LineType"] == "oh":
-            linetype_placement = "overhead"
-        else:
-            linetype_placement = "underground"
-    line_placement = linetype_placement
+    linetype_placement = ""
+    # use linetype property to determine line_placement - this property is not used commonly yet
+    # if ("LineType" in line_series) and (line_series["LineType"] in ["oh", "ug"]):
+    #     if line_series["LineType"] == "oh":
+    #         linetype_placement = "overhead"
+    #     else:
+    #         linetype_placement = "underground"
+    # line_placement = linetype_placement
     if line_series["line_definition_type"] == "geometry":
         # use height property to determine line_placement
         dss.Circuit.SetActiveClass("linegeometry")

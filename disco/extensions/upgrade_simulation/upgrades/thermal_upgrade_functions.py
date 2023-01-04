@@ -49,6 +49,7 @@ def correct_line_violations(line_loading_df, line_design_pu, line_upgrade_option
         # iterate over each overloaded line to find a solution
         for index, row in overloaded_loading_df.iterrows():
             logger.debug(row["name"])
+            breakpoint()
             try:
                 options = line_upgrade_options.loc[index]
             except KeyError:
@@ -162,6 +163,8 @@ def identify_parallel_lines(options, object_row, parallel_lines_limit, **kwargs)
     chosen_option = chosen_option.sort_values("normamps")
     chosen_option = chosen_option.iloc[0]  # choose lowest available option
     num_parallel_lines = int(chosen_option["num_parallel"])
+    breakpoint()
+    
     if num_parallel_lines > parallel_lines_limit:
         raise ExceededParallelLinesLimit(f"Number of parallel lines required is {num_parallel_lines}, which exceeds limit of {parallel_lines_limit}."
                                           f" Increase parameter parallel_lines_limit in input config or ensure higher sized equipment is present in technical catalog.")
@@ -369,8 +372,8 @@ def correct_xfmr_violations(xfmr_loading_df, xfmr_design_pu, xfmr_upgrade_option
                 options = pd.DataFrame([options])  # convert to required DataFrame format
                 options = options.rename_axis(deciding_property_list)  # assign names to the index
             options = options.reset_index().sort_values("amp_limit_per_phase")
-            if row["max_per_unit_loading"] > extreme_loading_threshold:  # i.e. equipment is very overloaded, then oversize to avoid multiple upgrade iterations
-                row["required_design_amp"] = row["required_design_amp"] * (row["max_per_unit_loading"] * 0.5)
+            # if row["max_per_unit_loading"] > extreme_loading_threshold:  # i.e. equipment is very overloaded, then oversize to avoid multiple upgrade iterations
+            #     row["required_design_amp"] = row["required_design_amp"] * (row["max_per_unit_loading"] * 0.5)
             chosen_option = options.loc[options["amp_limit_per_phase"] >=
                                         row["required_design_amp"]].sort_values("amp_limit_per_phase")
             # if one chosen option exists and is not very oversized (which is determined by acceptable oversize limit)
@@ -459,6 +462,7 @@ def identify_parallel_xfmrs(upgrade_options, object_row, parallel_transformers_l
     upgrade_options["num_parallel"] = upgrade_options["num_parallel_raw"].apply(np.ceil)
     upgrade_options["choose_parallel_metric"] = upgrade_options["num_parallel"] - upgrade_options["num_parallel_raw"]
     n = upgrade_options['num_parallel'].min()
+    breakpoint()
     upgrade_options = upgrade_options.loc[upgrade_options["num_parallel"] <= parallel_transformers_limit]
     if len(upgrade_options) == 0:
         raise ExceededParallelTransformersLimit(f"Number of parallel transformers required is {int(n)}, which exceeds limit of {parallel_transformers_limit}."
