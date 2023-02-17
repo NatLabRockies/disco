@@ -161,7 +161,8 @@ def identify_parallel_lines(options, object_row, parallel_lines_limit, **kwargs)
     # TODO SHERIN check - choose num_parallel based on combination of choose_parallel_metric and num_parallel_lines
     breakpoint()
     # choose option that has the least value of this metric- since that represents the per unit oversizing
-    chosen_option = pd.DataFrame(options.loc[options["choose_parallel_metric"].idxmin()]).T
+    # chosen_option = pd.DataFrame(options.loc[options["choose_parallel_metric"].idxmin()]).T
+    chosen_option = pd.DataFrame(options.loc[options["num_parallel"].idxmin()]).T
     chosen_option = chosen_option.sort_values("normamps")
     chosen_option = chosen_option.iloc[0]  # choose lowest available option
     num_parallel_lines = int(chosen_option["num_parallel"])
