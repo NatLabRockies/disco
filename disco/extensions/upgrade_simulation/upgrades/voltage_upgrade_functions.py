@@ -1870,7 +1870,7 @@ def plot_thermal_violations(fig_folder, title, equipment_with_violations, circui
     # edges_list = G.edges()
     Un_G = G.to_undirected()
     fig = plt.figure(figsize=(40, 40), dpi=10)
-    breakpoint()
+    # breakpoint()
     nx.draw_networkx_edges(Un_G, pos=position_dict, alpha=1.0, width=0.3)
     nx.draw_networkx_nodes(Un_G, pos=position_dict, alpha=1.0,
                            node_size=default_node_size, node_color=default_node_color)

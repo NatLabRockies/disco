@@ -177,7 +177,7 @@ def determine_thermal_upgrades(
         logger.info(f"Iteration_{iteration_counter}: Determined line loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of line violations: {len(overloaded_line_list)}")
         before_upgrade_num_line_violations = len(overloaded_line_list)
-        breakpoint()
+        # breakpoint()
         if len(overloaded_line_list) > 0:
             line_commands_list, temp_line_upgrades_df = correct_line_violations(
                 line_loading_df=line_loading_df,
@@ -194,7 +194,7 @@ def determine_thermal_upgrades(
         logger.info(f"Iteration_{iteration_counter}: Determined xfmr loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of xfmr violations: {len(overloaded_xfmr_list)}")
         before_upgrade_num_xfmr_violations = len(overloaded_xfmr_list)
-        breakpoint()
+        # breakpoint()
 
         if len(overloaded_xfmr_list) > 0:
             xfmr_commands_list, temp_xfmr_upgrades_df = correct_xfmr_violations(
