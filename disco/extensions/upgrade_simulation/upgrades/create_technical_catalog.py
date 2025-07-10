@@ -7,8 +7,8 @@ from pathlib import Path
 from disco.extensions.upgrade_simulation.upgrades.common_functions import (
     get_thermal_equipment_info,
     reload_dss_circuit,
-    ReloadCircuitParams,
-    CircuitSolveParams,
+    #ReloadCircuitParams,
+    #CircuitSolveParams,
     get_line_code,
     get_line_geometry,
     determine_available_line_upgrades,
@@ -21,15 +21,18 @@ from jade.utils.utils import dump_data
 
 def run(dss_file,output_path):
 
-    internal_upgrades_technical_catalog_filepath = Path(output_path, 'upgrades_technical_catalog.json')
+    internal_upgrades_technical_catalog_filepath = Path(output_path, 'disco_technical_catalog.json')
 
-    solve_params = CircuitSolveParams()
-    reload_circuit_params = ReloadCircuitParams()
+    #solve_params = CircuitSolveParams()
+    #reload_circuit_params = ReloadCircuitParams()
+    
+    reload_circuit_params= {"enable_pydss_solve": False,  "raise_exception": True}
+
     reload_dss_circuit(
         dss_file_list=[dss_file],
         commands_list=None,
-        solve_params=solve_params,
-        reload_circuit_params=reload_circuit_params,
+        #solve_params=solve_params,
+        #reload_circuit_params=reload_circuit_params,
             )
 
 
@@ -62,6 +65,7 @@ def run(dss_file,output_path):
     help="Output directory for results",
     callback=lambda _, __, z: Path(z),
 )
+@click.option("--force", is_flag=True, help="Overwrite existing output directory")
 def create_technical_catalog(dss_file, output_path, force):
     if output_path.exists() and not force:
         print(
