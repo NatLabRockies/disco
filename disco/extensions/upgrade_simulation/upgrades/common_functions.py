@@ -863,7 +863,7 @@ def get_all_transformer_info_instance(upper_limit=None, compute_loading=True):
     check_enabled_property(all_df, element_name="transformer")
     if len(all_df) == 0:
         return pd.DataFrame()
-    all_df["name"] = all_df.index.str.split(".").str[1]
+    all_df["name"] = all_df.index.str.split(".", n=1).str[1]
     all_df["equipment_type"] = all_df.index.str.split(".").str[0]
     # extract only enabled lines
     all_df = all_df.loc[all_df["enabled"].str.lower() == "yes"]
@@ -913,7 +913,11 @@ def get_all_transformer_info_instance(upper_limit=None, compute_loading=True):
                 all_df.at[index, "status"] = "unloaded"
             else:
                 all_df.at[index, "status"] = "normal"
+
+        if 'dtran_436333' in index:
+            breakpoint()
     all_df = all_df.reset_index(drop=True).set_index('name')
+    breakpoint()
     return all_df.reset_index()
 
 
@@ -994,7 +998,7 @@ def get_all_line_info_instance(upper_limit=None, compute_loading=True, ignore_sw
     if len(all_df) == 0:
         return pd.DataFrame()
     check_enabled_property(all_df, element_name="line")
-    all_df["name"] = all_df.index.str.split(".").str[1]
+    all_df["name"] = all_df.index.str.split(".",n=1).str[1]
     all_df["equipment_type"] = all_df.index.str.split(".").str[0]
     # extract only enabled lines
     all_df = all_df.loc[all_df["enabled"].str.lower() == "yes"]
@@ -1148,7 +1152,7 @@ def get_regcontrol_info(correct_PT_ratio=False, nominal_voltage=None):
     if len(all_df) == 0:
         return pd.DataFrame()
     check_enabled_property(all_df, element_name="regcontrol")    
-    all_df["name"] = all_df.index.str.split(".").str[1]
+    all_df["name"] = all_df.index.str.split(".",n=1).str[1]
     all_df["equipment_type"] = all_df.index.str.split(".").str[0]
     float_columns = ['winding', 'vreg', 'band', 'ptratio', 'delay']
     all_df[float_columns] = all_df[float_columns].astype(float)
@@ -1213,7 +1217,7 @@ def get_capacitor_info(nominal_voltage=None, correct_PT_ratio=False):
     if len(all_df) == 0:
         return pd.DataFrame()
     check_enabled_property(all_df, element_name="capacitor")  
-    all_df["capacitor_name"] = all_df.index.str.split(".").str[1]
+    all_df["capacitor_name"] = all_df.index.str.split(".",n=1).str[1]
     all_df["equipment_type"] = all_df.index.str.split(".").str[0]
     float_columns = ["phases", "kv"]
     all_df[float_columns] = all_df[float_columns].astype(float)
@@ -1263,7 +1267,7 @@ def get_cap_control_info():
                               "Reset", "basefreq", "enabled", "like"]
         return pd.DataFrame(columns=capcontrol_columns)
     check_enabled_property(all_df, element_name="capcontrol")
-    all_df["name"] = all_df.index.str.split(".").str[1]
+    all_df["name"] = all_df.index.str.split(".",n=1).str[1]
     all_df["equipment_type"] = all_df.index.str.split(".").str[0]
     CAPCONTROL_FLOAT_FIELDS = ["CTratio", "DeadTime", "Delay", "DelayOFF", "OFFsetting", "ONsetting", "PTratio",
                               "Vmax", "Vmin"]

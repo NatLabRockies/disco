@@ -2043,7 +2043,7 @@ def check_buscoordinates_completeness(bus_coordinates_df, verbose=False):
     """
     # if coordinates for a buses are [0,0], then it is considered incomplete/unavailable data
     percent_missing = len(bus_coordinates_df.loc[(bus_coordinates_df["x_coordinate"] == 0) & (bus_coordinates_df["y_coordinate"] == 0)]) * 100 / len(bus_coordinates_df)
-    complete_flag = percent_missing <= 25
+    complete_flag = percent_missing <= 50
     # if buscoordinates data is incomplete, log the completeness of data
     if not complete_flag:
         if verbose:
