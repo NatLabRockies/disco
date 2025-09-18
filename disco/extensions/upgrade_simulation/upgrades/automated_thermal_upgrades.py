@@ -189,6 +189,7 @@ def determine_thermal_upgrades(
         xfmr_loading_df = get_thermal_equipment_info(compute_loading=True, upper_limit=thermal_config["transformer_upper_limit"], 
                                                     equipment_type="transformer", **simulation_params)
         overloaded_xfmr_list = list(xfmr_loading_df.loc[xfmr_loading_df["status"] == "overloaded"]["name"].unique())
+        #breakpoint()
         logger.info(f"Iteration_{iteration_counter}: Determined xfmr loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of xfmr violations: {len(overloaded_xfmr_list)}")
         before_upgrade_num_xfmr_violations = len(overloaded_xfmr_list)

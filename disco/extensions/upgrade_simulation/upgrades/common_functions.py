@@ -859,6 +859,7 @@ def get_all_transformer_info_instance(upper_limit=None, compute_loading=True):
     -------
     DataFrame
     """
+    
     all_df = dss.utils.class_to_dataframe("transformer")
     check_enabled_property(all_df, element_name="transformer")
     if len(all_df) == 0:
@@ -878,6 +879,9 @@ def get_all_transformer_info_instance(upper_limit=None, compute_loading=True):
         all_df["max_per_unit_loading"] = np.nan
         all_df["status"] = ""
     for index, row in all_df.iterrows():
+
+        
+        
         all_df.at[index, "kVs"] = [float(a) for a in row["kVs"]]
         all_df.at[index, "kVAs"] = [float(a) for a in row["kVAs"]]
         try:
@@ -900,6 +904,8 @@ def get_all_transformer_info_instance(upper_limit=None, compute_loading=True):
         if compute_loading:
             if upper_limit is None:
                 raise Exception("Transformer upper limit is to be passed to function to compute transformer loading")
+            # if 'dtran_87892103' in index:
+            #     breakpoint()
             dss.Circuit.SetActiveElement("Transformer.{}".format(row["name"]))
             extract_magang = dss.CktElement.CurrentsMagAng()[: 2 * row["phases"]]  # extract elements based on num of ph
             xfmr_current_magnitude = extract_magang[::2]
@@ -914,10 +920,8 @@ def get_all_transformer_info_instance(upper_limit=None, compute_loading=True):
             else:
                 all_df.at[index, "status"] = "normal"
 
-        if 'dtran_436333' in index:
-            breakpoint()
+
     all_df = all_df.reset_index(drop=True).set_index('name')
-    breakpoint()
     return all_df.reset_index()
 
 
