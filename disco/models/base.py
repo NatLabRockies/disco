@@ -9,12 +9,19 @@ from pydantic.v1 import validator, root_validator, Field, BaseModel
 from pydantic.v1.types import DirectoryPath, FilePath
 
 from jade.utils.utils import ExtendedJSONEncoder, standardize_timestamp
-from PyDSS.common import ControllerType
-from PyDSS.registry import Registry
+try:
+    from PyDSS.common import ControllerType
+    from PyDSS.registry import Registry
+except ImportError:
+    ControllerType = str
+    Registry = None
 
 from disco.enums import SimulationType
 from disco.models.utils import SchemaDict
-from disco.pydss.pydss_configuration_base import DEFAULT_CONTROLLER_CONFIGS
+try:
+    from disco.pydss.pydss_configuration_base import DEFAULT_CONTROLLER_CONFIGS
+except ImportError:
+    DEFAULT_CONTROLLER_CONFIGS = []
 
 
 DISCO_CONTROLLER_NAMES = [
@@ -105,6 +112,8 @@ class PyDSSControllerModel(DiscoBaseModel):
 
     @root_validator(pre=True)
     def validate_pydss_controller_registration(cls, values: dict) -> dict:
+        if Registry is None:
+            return values
         controller_type = ControllerType(values["controller_type"])
         name = values["name"]
 

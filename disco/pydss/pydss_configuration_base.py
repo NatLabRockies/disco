@@ -5,8 +5,12 @@ import logging
 import os
 
 from jade.exceptions import InvalidParameter
-from PyDSS.common import ControllerType
-from PyDSS.registry import Registry
+try:
+    from PyDSS.common import ControllerType
+    from PyDSS.registry import Registry
+except ImportError:
+    ControllerType = None
+    Registry = None
 
 import disco
 from disco.distribution.distribution_configuration import DistributionConfiguration
@@ -21,18 +25,21 @@ DEFAULT_CONTROLLER_CONFIG_FILE = os.path.join(
     "config", "pv_controllers.toml"
 )
 
-DEFAULT_CONTROLLER_CONFIGS = [
-    {
-        "controller_type": ControllerType.PV_CONTROLLER.value,
-        "name": "volt_var_1",
-        "filename": DEFAULT_CONTROLLER_CONFIG_FILE
-    },
-    {
-        "controller_type": ControllerType.PV_CONTROLLER.value,
-        "name": "volt_var_ieee_1547_2018_catB",
-        "filename": DEFAULT_CONTROLLER_CONFIG_FILE
-    },
-]
+if ControllerType is not None:
+    DEFAULT_CONTROLLER_CONFIGS = [
+        {
+            "controller_type": ControllerType.PV_CONTROLLER.value,
+            "name": "volt_var_1",
+            "filename": DEFAULT_CONTROLLER_CONFIG_FILE
+        },
+        {
+            "controller_type": ControllerType.PV_CONTROLLER.value,
+            "name": "volt_var_ieee_1547_2018_catB",
+            "filename": DEFAULT_CONTROLLER_CONFIG_FILE
+        },
+    ]
+else:
+    DEFAULT_CONTROLLER_CONFIGS = []
 
 DEFAULT_LOAD_SHAPE_START_TIME = "2021-01-01 00:00:00.0"
 

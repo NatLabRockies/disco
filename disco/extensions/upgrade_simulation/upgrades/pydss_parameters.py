@@ -1,9 +1,15 @@
 import logging
 import opendssdirect as dss
 
-from PyDSS.simulation_input_models import ProjectModel
-from PyDSS.common import SimulationType
-from PyDSS.controllers import CircuitElementController, ControllerManager
+try:
+    from PyDSS.simulation_input_models import ProjectModel
+    from PyDSS.common import SimulationType
+    from PyDSS.controllers import CircuitElementController, ControllerManager
+except ImportError:
+    ProjectModel = None
+    SimulationType = None
+    CircuitElementController = None
+    ControllerManager = None
 
 from disco.exceptions import PyDssConvergenceError
 

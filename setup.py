@@ -63,7 +63,7 @@ install_requires = [
     "NREL-jade~=0.10.0",
     "chevron~=0.14.0",
     "click~=8.0",
-    "dsspy==3.0.2",  # 3.0.4 has a breaking change
+    # "dsspy==3.0.2",  # 3.0.4 has a breaking change  # no longer available on PyPi as of 3/2026
     "filelock~=3.8",
     "matplotlib~=3.6",
     "networkx~=2.8",

@@ -201,7 +201,7 @@ def create_upgraded_master_dss(dss_file_list, upgraded_master_dss_filepath, orig
             new_filename = _get_master_dss_filepath(filename, upgraded_master_dss_filepath)
         else:    
             new_filename = os.path.relpath(filename, os.path.dirname(upgraded_master_dss_filepath))
-        command_list.append(f"Redirect {new_filename}")
+        command_list.append(f'Redirect "{new_filename}"')
     return command_list
 
 
