@@ -54,10 +54,12 @@ class EVHostingCapacityResults:
         ]
         return "\n".join(lines)
 
+    # def __repr__(self) -> str:
+    #     return (
+    #         f"EVHostingCapacityResults("
+    #         f"feeder={self._feeder_name!r}, "
+    #         f"nodes={len(self._th_df)}, "
+    #         f"output_dir={str(self._output_dir)!r})"
+    #     )
     def __repr__(self) -> str:
-        return (
-            f"EVHostingCapacityResults("
-            f"feeder={self._feeder_name!r}, "
-            f"nodes={len(self._th_df)}, "
-            f"output_dir={str(self._output_dir)!r})"
-        )
+        return self.summary()

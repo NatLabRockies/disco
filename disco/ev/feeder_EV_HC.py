@@ -266,11 +266,13 @@ def get_loads() -> list[dict]:
 
         cktElement = dss.CktElement
         bus = cktElement.BusNames()[0].split(".")
-        datum["kVar"] = (
-            float(datum["kW"])
-            / float(datum["PF"])
-            * math.sqrt(1 - float(datum["PF"]) * float(datum["PF"]))
-        )
+        # datum["kVar"] = (
+        #     float(datum["kW"])
+        #     / float(datum["PF"])
+        #     * math.sqrt(1 - float(datum["PF"]) * float(datum["PF"]))
+        # )
+        datum["kVar"] = dss.Loads.kvar()
+
         datum["bus1"] = bus[0]
         datum["numPhases"] = len(bus[1:])
         datum["phases"] = bus[1:]
@@ -510,6 +512,7 @@ class ViolationBisector:
         self._lowest_violation = sys.maxsize
         self._highest_pass = -1.0
         self._tolerance = tolerance
+        self.UPPER_CAP = 1e6  # This is an arbitrary number that is sufficiently high to be above any hosting capacity.
 
     def get_next_value(self, last_result_violation: bool):
         done = False
@@ -529,7 +532,11 @@ class ViolationBisector:
             if self._found_first_violation:
                 self._cur_value += (self._lowest_violation - self._cur_value) // 2
             else:
-                self._cur_value *= 2
+                if self._cur_value >= self.UPPER_CAP:                  # <-- added
+                    self._lowest_violation = self.UPPER_CAP            # <-- added
+                    done = True                                        # <-- added
+                else:
+                    self._cur_value = min(self._cur_value * 2, self.UPPER_CAP)
 
         if not done and (self._lowest_violation is not None and self._highest_pass is not None):
             assert (
