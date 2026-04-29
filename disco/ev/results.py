@@ -75,8 +75,8 @@ class EVHostingCapacityResults:
     def thermal_screen(self) -> pd.DataFrame:
         return self._read_table("thermal_screen")
 
-    def hosting_capacity(self) -> pd.DataFrame:
-        return self._read_table("hosting_capacity")
+    def additional_capacity(self) -> pd.DataFrame:
+        return self._read_table("additional_capacity")
 
     def chargers(self) -> pd.DataFrame:
         return self._read_table("chargers")

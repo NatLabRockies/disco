@@ -242,13 +242,13 @@ def _run(
         new_df["Load"] = th_output_df["Load"]
         new_df["Bus"] = th_output_df["Bus"]
         new_df["Initial_kW"] = th_output_df["Initial_kW"]
-        new_df["Hosting_capacity(kW)"] = diff  # additional load it can support
+        new_df["Additional_capacity_kW"] = diff  # additional load it can support
 
         # new_df.to_csv(
         #     output_dir / f"Additional_HostingCapacity_{thermal_loading_limit}.csv",
         #     index=False,
         # )
-        new_df.to_sql("hosting_capacity", conn, if_exists="replace", index=False)
+        new_df.to_sql("additional_capacity", conn, if_exists="replace", index=False)
         # Find number of ev chargers for each node.
         chargers_3_2_1 = levels_of_charger(th_output_df)
         chargers_3_2_1.to_sql("chargers", conn, if_exists="replace", index=False)
