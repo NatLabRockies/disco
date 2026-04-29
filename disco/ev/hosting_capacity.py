@@ -20,6 +20,7 @@ class EVHostingCapacity:
 
         v_df, th_df, plot_df = _legacy_run(
             master_file=self.feeder.master_file,
+            feeder_name = self.feeder.name,
             lower_voltage_limit=0.95,
             upper_voltage_limit=1.05,
             kw_step_voltage_violation=10.0,

@@ -5,10 +5,10 @@ Created on Thu Sep 19 09:03:51 2019
 @author: ppaudyal
 """
 
-# import pandas as pd
+import pandas as pd
 
 
-def calc_dist(loadandbus_, nodeanddistance):
+def calc_dist(loadandbus_: pd.DataFrame, nodeanddistance: pd.DataFrame) -> pd.DataFrame:
 
     nodeanddistance["Node_only"] = ""
     for i in range(len(nodeanddistance)):
@@ -38,5 +38,5 @@ def calc_dist(loadandbus_, nodeanddistance):
         else:
             print("No ", loadandbus_["Bus"][i], "\n")
 
-    loadandbus_.to_csv("Load_distance_from_SS.csv")  # save as csv if required
+    #loadandbus_.to_csv("Load_distance_from_SS.csv")  # save as csv if required
     return loadandbus_

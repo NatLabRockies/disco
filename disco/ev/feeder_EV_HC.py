@@ -18,6 +18,8 @@ import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+import sqlite3
+
 import pandas as pd
 import numpy as np
 import math
@@ -39,6 +41,7 @@ logger.setLevel(logging.WARNING)
 
 def run(
     master_file: Path,
+    feeder_name: str,
     lower_voltage_limit: float,
     upper_voltage_limit: float,
     kw_step_voltage_violation: float,
@@ -74,6 +77,7 @@ def run(
         shutil.copyfile(master_file, output_dir / "Master.dss")
         return _run(
             master_file=master_file,
+            feeder_name=feeder_name,
             lower_voltage_limit=lower_voltage_limit,
             upper_voltage_limit=upper_voltage_limit,
             kw_step_voltage_violation=kw_step_voltage_violation,
@@ -93,6 +97,7 @@ def run(
 
 def _run(
     master_file: Path,
+    feeder_name: str,
     lower_voltage_limit: float,
     upper_voltage_limit: float,
     kw_step_voltage_violation: float,
@@ -106,134 +111,165 @@ def _run(
     output_dir: Path,
     num_cpus=None,
 ):
+    db_path = output_dir / "disco_ev_hc.db"
+    conn = sqlite3.connect(db_path)
+    
+    
+    
     dss.Text.Command("clear")
     compile_circuit(master_file)
-    ckt_name = dss.Circuit.Name()
-    logger.info("Circuit name: %s from %s master_file", ckt_name, master_file)
-
-    if export_circuit_elements:
-        export_circuit_element_properties(output_dir)
-
-    # TODO: Priti, this code isn't doing anything. Should we delete it?
-    # node_number = len(AllNodeNames)
-    # Vbase_allnode = [0] * node_number
-    # ii = 0
-    # for node in AllNodeNames:
-    #     dss.Circuit.SetActiveBus(node)
-    #     Vbase_allnode[ii] = dss.Bus.kVBase() * 1000
-    #     ii = ii + 1
-
-    # TODO: Priti: these variables are unused. Do we need them?
-    # hCapNames = [str(x)[1:-1] for x in dss.Capacitors.AllNames()]
-    # hRegNames = [str(x)[1:-1] for x in dss.RegControls.AllNames()]
-
-    dss.Text.Command("solve mode=snap")
-    logger.info(
-        "Initial condition voltage violation: %s",
-        circuit_has_violations(lower_voltage_limit, upper_voltage_limit),
-    )
-    bus_distances = list_bus_distances()
-    np.savetxt(output_dir / "node_distance.csv", bus_distances)
-
-    ####### for thermal overload capapcity #######################################################
-    overloads = get_loadings_with_violations(thermal_loading_limit)
-    if overloads:
-        logger.info("Thermal violation exists initially")
-        logger.info("Overloads: %s", overloads)
-    else:
-        logger.info("No thermal violation initially")
-
-    elements_with_extra_threshold = {
-        k: v + extra_percentage_for_existing_overloads for k, v in overloads.items()
-    }
-
-    logger.debug("new_threshold=%s", elements_with_extra_threshold)
-    loads = get_loads()
-
-    v_output_df = calculate_voltage_hosting_capacity(
-        loads,
-        master_file,
-        lower_voltage_limit,
-        upper_voltage_limit,
-        kw_step_voltage_violation,
-        voltage_tolerance,
-        num_cpus,
-    )
-    v_output_df.to_csv(
-        output_dir
-        / f"Hosting_capacity_voltage_test_{lower_voltage_limit}_{upper_voltage_limit}.csv"
-    )
-
-    # calculate the hosting capacity based on thermal ratings constraint
-    th_output_df = calculate_thermal_hosting_capacity(
-        loads,
-        master_file,
-        thermal_loading_limit,
-        kw_step_thermal_violation,
-        thermal_tolerance,
-        elements_with_extra_threshold,
-        num_cpus,
-    )
-    th_output_df.to_csv(output_dir / f"Hosting_capacity_thermal_test_{thermal_loading_limit}.csv")
-
-    #################### for plotting results ####################################################
-
-    load_bus = pd.DataFrame()
-    load_bus["Load"] = th_output_df["Load"]  #
-    load_bus["Bus"] = th_output_df["Bus"]
-    node_distance = pd.DataFrame()
-    node_distance["Node"] = dss.Circuit.AllNodeNames()
-    node_distance["Distance"] = bus_distances
-
-    dist_file = calc_dist(load_bus, node_distance)
-
-    dist_file["Initial_MW"] = th_output_df["Initial_kW"] / 1000
-    dist_file[f"Volt_Violation_{lower_voltage_limit}"] = v_output_df["Volt_Violation"] / 1000
-    dist_file[f"Thermal_Violation_{thermal_loading_limit}"] = (
-        th_output_df["Thermal_Violation"] / 1000
-    )
-
-    plot_df = dist_file.sort_values(by=["Distance"])
-
-    # # plot voltage violation scenarios
-    # plot_capacity_V(
-    #     plot_df,
-    #     "Initial_MW",
-    #     f"Volt_Violation_{lower_voltage_limit}",
-    #     output_dir,
-    # )
-
-    # # plot thermal violation
-    # # TODO: Priti, is the last parameter correct?
-    # plot_capacity_thermal_1(
-    #     plot_df,
-    #     "Initial_MW",
-    #     f"Thermal_Violation_{thermal_loading_limit}",
-    #     output_dir,
-    #     thermal_loading_limit,
-    # )
-
-    ### Assuming the hosting capacity is limited by thermal loading ##############################
-
-    ## Difference of initial load and maximum hosting capacity (assuming always thermal limit occurs first)
-    diff = th_output_df["Thermal_Violation"] - th_output_df["Initial_kW"]
-    new_df = pd.DataFrame()
-
-    new_df["Load"] = th_output_df["Load"]
-    new_df["Bus"] = th_output_df["Bus"]
-    new_df["Initial_kW"] = th_output_df["Initial_kW"]
-    new_df["Hosting_capacity(kW)"] = diff  # additional load it can support
-
-    new_df.to_csv(
-        output_dir / f"Additional_HostingCapacity_{thermal_loading_limit}.csv",
-        index=False,
-    )
-
-    # Find number of ev chargers for each node.
-    chargers_3_2_1 = levels_of_charger(th_output_df)
-    chargers_3_2_1.to_csv(output_dir / f"Loadwithlevel3_2_1_{thermal_loading_limit}.csv")
     
-    return v_output_df, th_output_df, plot_df
+    try:
+    
+        ckt_name = dss.Circuit.Name()
+        logger.info("Circuit name: %s from %s master_file", ckt_name, master_file)
+
+        if export_circuit_elements:
+            export_circuit_element_properties(output_dir)
+
+        # TODO: Priti, this code isn't doing anything. Should we delete it?
+        # node_number = len(AllNodeNames)
+        # Vbase_allnode = [0] * node_number
+        # ii = 0
+        # for node in AllNodeNames:
+        #     dss.Circuit.SetActiveBus(node)
+        #     Vbase_allnode[ii] = dss.Bus.kVBase() * 1000
+        #     ii = ii + 1
+
+        # TODO: Priti: these variables are unused. Do we need them?
+        # hCapNames = [str(x)[1:-1] for x in dss.Capacitors.AllNames()]
+        # hRegNames = [str(x)[1:-1] for x in dss.RegControls.AllNames()]
+
+        dss.Text.Command("solve mode=snap")
+        logger.info(
+            "Initial condition voltage violation: %s",
+            circuit_has_violations(lower_voltage_limit, upper_voltage_limit),
+        )
+        bus_distances = list_bus_distances()
+        #np.savetxt(output_dir / "node_distance.csv", bus_distances)
+        
+        node_df = pd.DataFrame({
+            "node": dss.Circuit.AllNodeNames(),
+            "distance": bus_distances,
+        })
+        node_df.to_sql("bus_distances", conn, if_exists="replace", index=False)
+
+        ####### for thermal overload capapcity #######################################################
+        overloads = get_loadings_with_violations(thermal_loading_limit)
+        if overloads:
+            logger.info("Thermal violation exists initially")
+            logger.info("Overloads: %s", overloads)
+        else:
+            logger.info("No thermal violation initially")
+
+        elements_with_extra_threshold = {
+            k: v + extra_percentage_for_existing_overloads for k, v in overloads.items()
+        }
+
+        logger.debug("new_threshold=%s", elements_with_extra_threshold)
+        loads = get_loads()
+
+        v_output_df = calculate_voltage_hosting_capacity(
+            loads,
+            master_file,
+            lower_voltage_limit,
+            upper_voltage_limit,
+            kw_step_voltage_violation,
+            voltage_tolerance,
+            num_cpus,
+        )
+        # v_output_df.to_csv(
+        #     output_dir
+        #     / f"Hosting_capacity_voltage_test_{lower_voltage_limit}_{upper_voltage_limit}.csv"
+        # )
+        v_output_df.to_sql("voltage_screen", conn, if_exists="replace", index=False)
+        
+        # calculate the hosting capacity based on thermal ratings constraint
+        th_output_df = calculate_thermal_hosting_capacity(
+            loads,
+            master_file,
+            thermal_loading_limit,
+            kw_step_thermal_violation,
+            thermal_tolerance,
+            elements_with_extra_threshold,
+            num_cpus,
+        )
+        th_output_df.to_sql("thermal_screen", conn, if_exists="replace", index=False)
+
+        #################### for plotting results ####################################################
+
+        load_bus = pd.DataFrame()
+        load_bus["Load"] = th_output_df["Load"]  #
+        load_bus["Bus"] = th_output_df["Bus"]
+        node_distance = pd.DataFrame()
+        node_distance["Node"] = dss.Circuit.AllNodeNames()
+        node_distance["Distance"] = bus_distances
+
+        dist_file = calc_dist(load_bus, node_distance)
+
+        dist_file["Initial_MW"] = th_output_df["Initial_kW"] / 1000
+        dist_file[f"Volt_Violation_{lower_voltage_limit}"] = v_output_df["Volt_Violation"] / 1000
+        dist_file[f"Thermal_Violation_{thermal_loading_limit}"] = (
+            th_output_df["Thermal_Violation"] / 1000
+        )
+
+        plot_df = dist_file.sort_values(by=["Distance"])
+
+        # # plot voltage violation scenarios
+        # plot_capacity_V(
+        #     plot_df,
+        #     "Initial_MW",
+        #     f"Volt_Violation_{lower_voltage_limit}",
+        #     output_dir,
+        # )
+
+        # # plot thermal violation
+        # # TODO: Priti, is the last parameter correct?
+        # plot_capacity_thermal_1(
+        #     plot_df,
+        #     "Initial_MW",
+        #     f"Thermal_Violation_{thermal_loading_limit}",
+        #     output_dir,
+        #     thermal_loading_limit,
+        # )
+
+        ### Assuming the hosting capacity is limited by thermal loading ##############################
+
+        ## Difference of initial load and maximum hosting capacity (assuming always thermal limit occurs first)
+        diff = th_output_df["Thermal_Violation"] - th_output_df["Initial_kW"]
+        new_df = pd.DataFrame()
+
+        new_df["Load"] = th_output_df["Load"]
+        new_df["Bus"] = th_output_df["Bus"]
+        new_df["Initial_kW"] = th_output_df["Initial_kW"]
+        new_df["Hosting_capacity(kW)"] = diff  # additional load it can support
+
+        # new_df.to_csv(
+        #     output_dir / f"Additional_HostingCapacity_{thermal_loading_limit}.csv",
+        #     index=False,
+        # )
+        new_df.to_sql("hosting_capacity", conn, if_exists="replace", index=False)
+        # Find number of ev chargers for each node.
+        chargers_3_2_1 = levels_of_charger(th_output_df)
+        chargers_3_2_1.to_sql("chargers", conn, if_exists="replace", index=False)
+        dist_file.to_sql("bus_distances", conn, if_exists="replace", index=False)
+
+        _write_simulation_metadata(                                  # ← Step 4
+            conn,
+            feeder_name=feeder_name,
+            lower_voltage_limit=lower_voltage_limit,
+            upper_voltage_limit=upper_voltage_limit,
+            thermal_loading_limit=thermal_loading_limit,
+            run_timestamp=pd.Timestamp.now().isoformat(),
+        )
+
+
+
+
+        return v_output_df, th_output_df, plot_df
+
+    finally:
+        conn.close()
 
 def circuit_has_violations(lower_voltage_limit, upper_voltage_limit) -> bool:
     """Returns True if the current circuit has voltage violations."""
@@ -565,6 +601,12 @@ def compile_circuit(master_file: Path):
         dss.Text.Command(f"Compile {master_file}")
     finally:
         os.chdir(orig)
+
+
+def _write_simulation_metadata(conn, **kwargs) -> None:
+    """Write a key/value table of run-config parameters into the SQLite DB."""
+    rows = [{"key": k, "value": str(v)} for k, v in kwargs.items()]
+    pd.DataFrame(rows).to_sql("simulation_metadata", conn, if_exists="replace", index=False)
 
 
 def export_circuit_element_properties(output_dir: Path):

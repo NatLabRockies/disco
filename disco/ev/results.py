@@ -1,5 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
+import sqlite3
+
 import numpy as np
 import pandas as pd
 
@@ -53,13 +55,35 @@ class EVHostingCapacityResults:
             f"Max capacity:        {hc_kw.max():.0f} kW",
         ]
         return "\n".join(lines)
+ 
 
-    # def __repr__(self) -> str:
-    #     return (
-    #         f"EVHostingCapacityResults("
-    #         f"feeder={self._feeder_name!r}, "
-    #         f"nodes={len(self._th_df)}, "
-    #         f"output_dir={str(self._output_dir)!r})"
-    #     )
     def __repr__(self) -> str:
         return self.summary()
+    
+       
+    @property
+    def db_path(self) -> Path:
+        return self._output_dir / "disco_ev_hc.db"
+    
+    def _read_table(self, table: str) -> pd.DataFrame:
+        with sqlite3.connect(self.db_path) as conn:
+            return pd.read_sql(f"SELECT * FROM {table}", conn)
+        
+    def voltage_screen(self) -> pd.DataFrame:
+        return self._read_table("voltage_screen")
+    
+    def thermal_screen(self) -> pd.DataFrame:
+        return self._read_table("thermal_screen")
+
+    def hosting_capacity(self) -> pd.DataFrame:
+        return self._read_table("hosting_capacity")
+
+    def chargers(self) -> pd.DataFrame:
+        return self._read_table("chargers")
+
+    def bus_distances(self) -> pd.DataFrame:
+        return self._read_table("bus_distances")
+
+    def simulation_metadata(self) -> dict[str, str]:
+        df = self._read_table("simulation_metadata")
+        return dict(zip(df["key"], df["value"]))

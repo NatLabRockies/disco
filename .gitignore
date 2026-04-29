@@ -157,3 +157,10 @@ transform_config.toml
 
 # PyDSS
 PyDSS/*
+
+# generated SQLite databases
+*.db
+*.db-journal
+
+
+
