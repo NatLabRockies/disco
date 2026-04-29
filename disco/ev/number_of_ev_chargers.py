@@ -66,7 +66,7 @@ def levels_of_charger(output_file):
         elif tmp_data >= 3.3 and tmp_data < 7.2:  ### # if less than 7.2 more than 3.3
             no_of_xfc = 0
             no_of_lvl2 = 0
-            print(tmp_data)
+            #print(tmp_data)
 
             n1 = tmp_data / 3.3
             no_of_lvl1 = int(n1)

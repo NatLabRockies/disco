@@ -133,7 +133,7 @@ def hosting_capacity(
                 file=sys.stderr,
             )
             sys.exit(1)
-    output.mkdir()
+    output.mkdir(parents=True)
     thermal_tolerance = thermal_tolerance or kw_step_thermal_violation
     voltage_tolerance = voltage_tolerance or kw_step_voltage_violation
 

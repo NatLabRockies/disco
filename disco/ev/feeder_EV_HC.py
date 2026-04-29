@@ -24,15 +24,17 @@ import math
 import opendssdirect as dss
 
 from .load_distance_from_SS import calc_dist
-from .plot_hosting_capacity import (
-    plot_capacity_V,
-    plot_capacity_thermal_1,
-    plot_capacity_thermal_2,
-)
+# from .plot_hosting_capacity import (
+#     plot_capacity_V,
+#     plot_capacity_thermal_1,
+#     plot_capacity_thermal_2,
+# )
+
 from .number_of_ev_chargers import levels_of_charger
 
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def run(
@@ -51,17 +53,26 @@ def run(
     num_cpus=None,
 ):
     # This accounts for master files that enable time series mode.
+    # backup_file = master_file.with_suffix(".bk")
+    # shutil.copyfile(master_file, backup_file)
+    # with fileinput.input(files=[master_file], inplace=True) as f:
+    #     for line in f:
+    #         if not line.strip().lower().startswith("solve"):
+    #             print(line, end="")
+    #     print("Solve mode=snapshot")
+
     backup_file = master_file.with_suffix(".bk")
     shutil.copyfile(master_file, backup_file)
-    with fileinput.input(files=[master_file], inplace=True) as f:
-        for line in f:
-            if not line.strip().lower().startswith("solve"):
-                print(line, end="")
-        print("Solve mode=snapshot")
+
+    original_lines = master_file.read_text().splitlines()
+    kept_lines = [ln for ln in original_lines if not ln.strip().lower().startswith("solve")]
+    kept_lines.append("Solve mode=snapshot")
+    master_file.write_text("\n".join(kept_lines) + "\n")
+
 
     try:
         shutil.copyfile(master_file, output_dir / "Master.dss")
-        _run(
+        return _run(
             master_file=master_file,
             lower_voltage_limit=lower_voltage_limit,
             upper_voltage_limit=upper_voltage_limit,
@@ -76,7 +87,8 @@ def run(
             num_cpus=num_cpus,
         )
     finally:
-        os.rename(backup_file, master_file)
+        #os.rename(backup_file, master_file)
+        shutil.move(str(backup_file), str(master_file))
 
 
 def _run(
@@ -183,23 +195,23 @@ def _run(
 
     plot_df = dist_file.sort_values(by=["Distance"])
 
-    # plot voltage violation scenarios
-    plot_capacity_V(
-        plot_df,
-        "Initial_MW",
-        f"Volt_Violation_{lower_voltage_limit}",
-        output_dir,
-    )
+    # # plot voltage violation scenarios
+    # plot_capacity_V(
+    #     plot_df,
+    #     "Initial_MW",
+    #     f"Volt_Violation_{lower_voltage_limit}",
+    #     output_dir,
+    # )
 
-    # plot thermal violation
-    # TODO: Priti, is the last parameter correct?
-    plot_capacity_thermal_1(
-        plot_df,
-        "Initial_MW",
-        f"Thermal_Violation_{thermal_loading_limit}",
-        output_dir,
-        thermal_loading_limit,
-    )
+    # # plot thermal violation
+    # # TODO: Priti, is the last parameter correct?
+    # plot_capacity_thermal_1(
+    #     plot_df,
+    #     "Initial_MW",
+    #     f"Thermal_Violation_{thermal_loading_limit}",
+    #     output_dir,
+    #     thermal_loading_limit,
+    # )
 
     ### Assuming the hosting capacity is limited by thermal loading ##############################
 
@@ -220,7 +232,8 @@ def _run(
     # Find number of ev chargers for each node.
     chargers_3_2_1 = levels_of_charger(th_output_df)
     chargers_3_2_1.to_csv(output_dir / f"Loadwithlevel3_2_1_{thermal_loading_limit}.csv")
-
+    
+    return v_output_df, th_output_df, plot_df
 
 def circuit_has_violations(lower_voltage_limit, upper_voltage_limit) -> bool:
     """Returns True if the current circuit has voltage violations."""

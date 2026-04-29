@@ -43,9 +43,8 @@ def plot_capacity_V(file, caseA, caseB, output_dir: Path, caseC=None, caseD=None
     ax1.margins(x=0)
     ax1.tick_params(axis="both", which="major", labelsize=33)
     ax1.tick_params(axis="both", which="minor", labelsize=33)
-    ax1.set_ylabel("Power (MW)", fontsize=33)
+    ax1.set_ylabel("Power (kW)", fontsize=33)
     ax1.legend(loc="upper right", fontsize=33)
-    ax1.set_ylim(-2, 65)
     ax1.grid()
     # ax1.set_xlabel('Load # according to distance from SS', fontsize=40)
     ax1.set_xlabel(
@@ -93,14 +92,12 @@ def plot_capacity_thermal_1(file, caseA, caseB, output_dir: Path, extra):
     ax1.margins(x=0)
     ax1.tick_params(axis="both", which="major", labelsize=33)
     ax1.tick_params(axis="both", which="minor", labelsize=33)
-    ax1.set_ylabel("Power (MW)", fontsize=33)
+    ax1.set_ylabel("Power (kW)", fontsize=33)
     ax1.legend(loc="upper right", fontsize=33)
     ax1.grid()
-    # ax1.set_xlabel('Load # according to distance from SS', fontsize=40)
     ax1.set_xlabel(
         "Feeder Node (where highest is furthest from substation)", fontsize=33
-    )  # ax1.set_xlabel('Load indices, according to distance from SS \n(load #' + str(len(file)) + ' is the furthest from SS)', fontsize=40)
-    # fig.tight_layout()
+    )
     plt.savefig(
         output_dir / f"Cap_by_thermal_limit_{extra}.png", bbox_inches="tight", dpi=150
     )
