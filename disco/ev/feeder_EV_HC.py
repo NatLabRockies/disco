@@ -327,10 +327,11 @@ def get_loads() -> list[dict]:
 
 def list_bus_distances() -> list[float]:
     """Return a list of bus distances."""
+    _ensure_energymeter_at_source()
     distances = []
     for node in dss.Circuit.AllNodeNames():
         dss.Circuit.SetActiveBus(node)
-        distances.append(dss.Bus.Distance())
+        distances.append(round(dss.Bus.Distance(), 2))
     return distances
 
 
@@ -599,9 +600,43 @@ def compile_circuit(master_file: Path):
     orig = os.getcwd()
     try:
         dss.Text.Command(f"Compile {master_file}")
+        dss.Text.Command("Set ControlMode=OFF") # wenbo added, to freeze control
+        _ensure_energymeter_at_source()
     finally:
         os.chdir(orig)
 
+def _ensure_energymeter_at_source() -> None:
+    """If the master DSS doesn't define an EnergyMeter, place one on the
+    first PD element at the source bus. Required for dss.Bus.Distance()
+    to return non-zero values."""
+    if dss.Meters.Count() > 0:
+        return
+
+    sources = dss.Vsources.AllNames()
+    if not sources:
+        return
+
+    dss.Vsources.Name(sources[0])
+    source_bus = dss.CktElement.BusNames()[0].split(".")[0]
+    dss.Circuit.SetActiveBus(source_bus)
+
+    candidates = dss.Bus.LineList()
+    if not candidates:
+        candidates = [
+            e for e in dss.Bus.AllPDEatBus()
+            if not e.lower().startswith("vsource.")
+        ]
+
+    if not candidates:
+        logger.warning(
+            "No PD element found at source bus %s; bus distances will be 0",
+            source_bus,
+        )
+        return
+
+    target = candidates[0]
+    dss.Text.Command(f"New EnergyMeter.AutoMeter element={target} terminal=1")
+    logger.info("Auto-added EnergyMeter on %s for distance computation", target)
 
 def _write_simulation_metadata(conn, **kwargs) -> None:
     """Write a key/value table of run-config parameters into the SQLite DB."""
