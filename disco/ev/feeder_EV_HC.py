@@ -36,7 +36,7 @@ from .number_of_ev_chargers import levels_of_charger
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.ERROR)
 
 
 def run(
@@ -114,7 +114,8 @@ def _run(
     db_path = output_dir / "disco_ev_hc.db"
     conn = sqlite3.connect(db_path)
     
-    
+
+
     
     dss.Text.Command("clear")
     compile_circuit(master_file)
@@ -141,10 +142,15 @@ def _run(
         # hRegNames = [str(x)[1:-1] for x in dss.RegControls.AllNames()]
 
         dss.Text.Command("solve mode=snap")
-        logger.info(
-            "Initial condition voltage violation: %s",
-            circuit_has_violations(lower_voltage_limit, upper_voltage_limit),
-        )
+
+        if circuit_has_violations(lower_voltage_limit, upper_voltage_limit):
+            logger.warning("Initial condition has voltage violation before EV load is added")
+            #print("violation exists initially")
+
+        # logger.warning(
+        #     "Initial condition voltage violation: %s",
+        #     circuit_has_violations(lower_voltage_limit, upper_voltage_limit),
+        # )
         bus_distances = list_bus_distances()
         #np.savetxt(output_dir / "node_distance.csv", bus_distances)
         
@@ -157,8 +163,8 @@ def _run(
         ####### for thermal overload capapcity #######################################################
         overloads = get_loadings_with_violations(thermal_loading_limit)
         if overloads:
-            logger.info("Thermal violation exists initially")
-            logger.info("Overloads: %s", overloads)
+            logger.warning("Thermal violation exists initially")
+            #logger.warning("Overloads: %s", overloads)
         else:
             logger.info("No thermal violation initially")
 
@@ -272,7 +278,10 @@ def _run(
         conn.close()
 
 def circuit_has_violations(lower_voltage_limit, upper_voltage_limit) -> bool:
-    """Returns True if the current circuit has voltage violations."""
+    """Returns True if the current circuit has voltage violations OR the solver failed."""
+    if not dss.Solution.Converged():
+        return True
+    
     v = np.array(dss.Circuit.AllBusMagPu())
     return np.any(v > upper_voltage_limit) or np.any(v < lower_voltage_limit)
 

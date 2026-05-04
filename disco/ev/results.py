@@ -23,9 +23,9 @@ class EVHostingCapacityResults:
         th_max_vals = th_max.reindex(loads).values
         initial_kw = self._th_df["Initial_kW"].values
 
-        combined_max = np.minimum(v_max_vals, th_max_vals)
+        combined_max = th_max_vals # np.minimum(v_max_vals, th_max_vals)
         hc_kw = np.maximum(combined_max - initial_kw, 0.0)
-        binding = np.where(v_max_vals <= th_max_vals, "voltage", "thermal")
+        binding = "thermal" # np.where(v_max_vals <= th_max_vals, "voltage", "thermal")
 
         return pd.DataFrame({
             "Load": loads,
@@ -87,3 +87,23 @@ class EVHostingCapacityResults:
     def simulation_metadata(self) -> dict[str, str]:
         df = self._read_table("simulation_metadata")
         return dict(zip(df["key"], df["value"]))
+    
+
+
+    @classmethod
+    def from_db(cls, output_dir) -> "EVHostingCapacityResults":
+        """Load a past run's results from disco_ev_hc.db without re-simulating.
+
+        Reads voltage_screen, thermal_screen, and simulation_metadata into
+        a fresh EVHostingCapacityResults instance — bypassing __init__ since
+        we don't have the in-memory DataFrames the constructor expects.
+        """
+        output_dir = Path(output_dir)
+        inst = cls.__new__(cls)              # bypass __init__
+        inst._output_dir = output_dir
+        inst._plot_df = None                 # not stored in DB
+        inst._feeder_name = inst.simulation_metadata().get("feeder_name", "unknown")
+        inst._v_df = inst.voltage_screen()
+        inst._th_df = inst.thermal_screen()
+        return inst
+
