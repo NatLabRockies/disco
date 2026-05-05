@@ -1,0 +1,15 @@
+new Load.671 Phases=3 Bus1=671.1.2.3 kV=4.1598779715435565 kW=1155.0 Model=8 Conn=delta kvar=660.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.634a Phases=1 Bus1=634.1 kV=0.27712812921102037 kW=160.0 Model=8 Conn=wye kvar=110.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.634b Phases=1 Bus1=634.2 kV=0.27712812921102037 kW=120.0 Model=8 Conn=wye kvar=90.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.634c Phases=1 Bus1=634.3 kV=0.27712812921102037 kW=120.0 Model=8 Conn=wye kvar=90.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.645 Phases=1 Bus1=645.2 kV=2.4017771198288433 kW=170.0 Model=8 Conn=wye kvar=125.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.646 Phases=1 Bus1=646.2.3 kV=4.1598779715435565 kW=230.0 Model=8 Conn=delta kvar=132.0 ZIPV=[1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] Enabled=True
+new Load.692 Phases=1 Bus1=692.3.1 kV=4.1598779715435565 kW=170.0 Model=8 Conn=delta kvar=151.0 ZIPV=[0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0] Enabled=True
+new Load.675a Phases=1 Bus1=675.1 kV=2.4017771198288433 kW=485.0 Model=8 Conn=wye kvar=190.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.675b Phases=1 Bus1=675.2 kV=2.4017771198288433 kW=68.0 Model=8 Conn=wye kvar=60.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.675c Phases=1 Bus1=675.3 kV=2.4017771198288433 kW=290.0 Model=8 Conn=wye kvar=212.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.611 Phases=1 Bus1=611.3 kV=2.4017771198288433 kW=170.0 Model=8 Conn=wye kvar=80.0 ZIPV=[0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0] Enabled=True
+new Load.652 Phases=1 Bus1=652.1 kV=2.4017771198288433 kW=128.0 Model=8 Conn=wye kvar=86.0 ZIPV=[1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0] Enabled=True
+new Load.670a Phases=1 Bus1=670.1 kV=2.4017771198288433 kW=17.0 Model=8 Conn=wye kvar=10.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.670b Phases=1 Bus1=670.2 kV=2.4017771198288433 kW=66.0 Model=8 Conn=wye kvar=38.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True
+new Load.670c Phases=1 Bus1=670.3 kV=2.4017771198288433 kW=117.0 Model=8 Conn=wye kvar=68.0 ZIPV=[0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0] Enabled=True

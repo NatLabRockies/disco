@@ -1,0 +1,15 @@
+Clear
+
+New Circuit.source Bus1=sourcebus.1.2.3 BasekV=114.99662661718968 pu=1.05 Angle=30.0 Phases=3 Z1=[0.160376682055275, 0.641506728221101] Z0=[0.179603583012336, 0.538810749037007] Enabled=True
+redirect LineCodes.dss
+redirect SwitchCodes.dss
+redirect Transformers.dss
+redirect Capacitors.dss
+redirect Lines.dss
+redirect Loads.dss
+redirect Switches.dss
+New EnergyMeter.SourceMeter element=Transformer.sub
+Set Voltagebases=[0.47998591979348726, 114.99662661718968, 4.1598779715435565]
+calcv
+Solve
+redirect BusCoords.dss

@@ -1,0 +1,2 @@
+new Capacitor.cap1 Bus1=675.1.2.3 Phases=3 NumSteps=1 kvar=[600.0] kV=4.1598779715435565 Conn=wye R=[0.0] XL=[0.0] States=[1]
+new Capacitor.cap2 Bus1=611.3 Phases=1 NumSteps=1 kvar=[100.0] kV=2.4017771198288433 Conn=wye R=[0.0] XL=[0.0] States=[1]

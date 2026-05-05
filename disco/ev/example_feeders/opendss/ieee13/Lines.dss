@@ -1,0 +1,11 @@
+new Line.650632 Bus1=rg60.1.2.3 Bus2=632.1.2.3 LineCode=0f2458b4-bad0-4ed0-a187-d5e1e7c08965 Length=2000.0 Phases=3 Units=ft
+new Line.632670 Bus1=632.1.2.3 Bus2=670.1.2.3 LineCode=0f2458b4-bad0-4ed0-a187-d5e1e7c08965 Length=667.0 Phases=3 Units=ft
+new Line.670671 Bus1=670.1.2.3 Bus2=671.1.2.3 LineCode=0f2458b4-bad0-4ed0-a187-d5e1e7c08965 Length=1333.0 Phases=3 Units=ft
+new Line.671680 Bus1=671.1.2.3 Bus2=680.1.2.3 LineCode=0f2458b4-bad0-4ed0-a187-d5e1e7c08965 Length=1000.0 Phases=3 Units=ft
+new Line.632633 Bus1=632.1.2.3 Bus2=633.1.2.3 LineCode=5eceec70-b9af-476b-b03a-a3096b197a35 Length=500.0 Phases=3 Units=ft
+new Line.632645 Bus1=632.3.2 Bus2=645.3.2 LineCode=cc66b3e3-fdaf-4796-865f-a0ad1474e511 Length=500.0 Phases=2 Units=ft
+new Line.645646 Bus1=645.3.2 Bus2=646.3.2 LineCode=cc66b3e3-fdaf-4796-865f-a0ad1474e511 Length=300.0 Phases=2 Units=ft
+new Line.692675 Bus1=692.1.2.3 Bus2=675.1.2.3 LineCode=f3af2241-004b-4869-834c-d6e342fb2249 Length=500.0 Phases=3 Units=ft
+new Line.671684 Bus1=671.1.3 Bus2=684.1.3 LineCode=cc66b3e3-fdaf-4796-865f-a0ad1474e511 Length=300.0 Phases=2 Units=ft
+new Line.684611 Bus1=684.3 Bus2=611.3 LineCode=1bbe4c46-0f51-45fc-961e-8aab24168a95 Length=300.0 Phases=1 Units=ft
+new Line.684652 Bus1=684.1 Bus2=652.1 LineCode=996e48a5-1b2f-4bc7-8c0c-8b556d76bf1c Length=800.0 Phases=1 Units=ft
