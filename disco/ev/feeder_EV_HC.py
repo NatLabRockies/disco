@@ -54,6 +54,7 @@ def run(
     # plot_heatmap: bool,
     output_dir: Path,
     num_cpus=None,
+    screen_all_buses: bool = False,
 ):
     # This accounts for master files that enable time series mode.
     # backup_file = master_file.with_suffix(".bk")
@@ -89,6 +90,7 @@ def run(
             export_circuit_elements=export_circuit_elements,
             output_dir=output_dir,
             num_cpus=num_cpus,
+            screen_all_buses=screen_all_buses,
         )
     finally:
         #os.rename(backup_file, master_file)
@@ -110,6 +112,7 @@ def _run(
     # plot_heatmap: bool,
     output_dir: Path,
     num_cpus=None,
+    screen_all_buses: bool = False,
 ):
     db_path = output_dir / "disco_ev_hc.db"
     conn = sqlite3.connect(db_path)
@@ -160,6 +163,10 @@ def _run(
         })
         node_df.to_sql("bus_distances", conn, if_exists="replace", index=False)
 
+        coords_df, lines_df = _extract_topology()
+        coords_df.to_sql("bus_coordinates", conn, if_exists="replace", index=False)
+        lines_df.to_sql("line_segments", conn, if_exists="replace", index=False)
+
         ####### for thermal overload capapcity #######################################################
         overloads = get_loadings_with_violations(thermal_loading_limit)
         if overloads:
@@ -173,7 +180,8 @@ def _run(
         }
 
         logger.debug("new_threshold=%s", elements_with_extra_threshold)
-        loads = get_loads()
+        #loads = get_loads()
+        loads = get_probe_loads() if screen_all_buses else get_loads()
 
         v_output_df = calculate_voltage_hosting_capacity(
             loads,
@@ -183,6 +191,7 @@ def _run(
             kw_step_voltage_violation,
             voltage_tolerance,
             num_cpus,
+            screen_all_buses = screen_all_buses,
         )
         # v_output_df.to_csv(
         #     output_dir
@@ -199,6 +208,7 @@ def _run(
             thermal_tolerance,
             elements_with_extra_threshold,
             num_cpus,
+            screen_all_buses = screen_all_buses,
         )
         th_output_df.to_sql("thermal_screen", conn, if_exists="replace", index=False)
 
@@ -267,6 +277,7 @@ def _run(
             upper_voltage_limit=upper_voltage_limit,
             thermal_loading_limit=thermal_loading_limit,
             run_timestamp=pd.Timestamp.now().isoformat(),
+            screen_all_buses=screen_all_buses,
         )
 
 
@@ -333,6 +344,67 @@ def get_loads() -> list[dict]:
 
     return loads
 
+def get_probe_loads(exclude_source: bool = True) -> list[dict]:
+    """Add a small probe Load at every non-source bus on top of any existing
+    loads. The probe's physical kW (1.0) is a placeholder — the bisector
+    overwrites it on iteration 1. We report load["kW"]=0 so Initial_kW reads
+    as zero and HC = Maximum_kW = additional hostable capacity at the bus."""
+    source_bus = None
+    if exclude_source:
+        sources = dss.Vsources.AllNames()
+        if sources:
+            dss.Vsources.Name(sources[0])
+            source_bus = dss.CktElement.BusNames()[0].split(".")[0].lower()
+
+    probes = []
+    for bus in dss.Circuit.AllBusNames():
+        bus_lower = bus.lower()
+        if exclude_source and bus_lower == source_bus:
+            continue
+
+        dss.Circuit.SetActiveBus(bus)
+        nodes = list(dss.Bus.Nodes())
+        if not nodes:
+            continue
+
+        kv_ln = dss.Bus.kVBase()
+        if kv_ln == 0:
+            logger.warning(
+                "Skipping bus %s for probe-load injection: kVBase()==0 "
+                "(check the model — every bus should have a defined kV base)",
+                bus,
+            )
+            continue
+
+        nphases = len(nodes)
+        kv = kv_ln * np.sqrt(3) if nphases == 3 else kv_ln
+
+        name = f"probe_{bus_lower}"
+        bus1 = f"{bus}." + ".".join(str(n) for n in nodes)
+        dss.Text.Command(
+            f"New Load.{name} Bus1={bus1} Phases={nphases} "
+            f"kV={kv:.6f} kW=1.0 PF=1.0 conn=wye Model=1"
+        )
+
+        probes.append({
+            "name": name,
+            "kV": kv,
+            "kW": 0.0,            # reported as Initial_kW; probe contributes no baseline
+            "PF": 1.0,
+            "Delta_conn": False,
+            "kVar": 0.0,
+            "bus1": bus_lower,
+            "numPhases": nphases,
+            "phases": [str(n) for n in nodes],
+            "voltageMag": 0.0,
+            "voltageAng": 0.0,
+            "power": [0.0, 0.0],
+        })
+    return probes
+
+
+
+
 
 def list_bus_distances() -> list[float]:
     """Return a list of bus distances."""
@@ -352,6 +424,7 @@ def calculate_voltage_hosting_capacity(
     kw_step_voltage_violation,
     voltage_tolerance,
     num_cpus,
+    screen_all_buses = False,
 ) -> pd.DataFrame:
     """Calculate hosting capacity based on voltage and store the result in a DataFrame."""
     v_lst = []
@@ -372,6 +445,7 @@ def calculate_voltage_hosting_capacity(
             itertools.repeat(upper_limit),
             itertools.repeat(kw_step_voltage_violation),
             itertools.repeat(voltage_tolerance),
+            itertools.repeat(screen_all_buses),
         ):
             load, cap_limit, vmax, vmin = result
             logger.debug("Ran voltage check on load=%s", load["name"])
@@ -402,10 +476,11 @@ def calculate_voltage_hosting_capacity(
 
 
 def node_V_capacity_check(
-    load, master_file, lower_limit, upper_limit, kw_step_voltage_violation, tolerance
+    load, master_file, lower_limit, upper_limit, kw_step_voltage_violation, tolerance,
+    with_probes,
 ):
     """Returns the lowest capacity at which a violation occurs."""
-    compile_circuit(master_file)
+    compile_circuit(master_file, with_probes=with_probes)
     initial_kW = load["kW"] + kw_step_voltage_violation
     initial_value = initial_kW
     new_kW = initial_kW
@@ -451,6 +526,7 @@ def calculate_thermal_hosting_capacity(
     thermal_tolerance,
     elements_with_extra_threshold,
     num_cpus,
+    screen_all_buses: bool = False,
 ):
     """Calculate hosting capacity based on voltage and store the result in a DataFrame."""
     th_threshold = []
@@ -468,6 +544,7 @@ def calculate_thermal_hosting_capacity(
             itertools.repeat(kw_step_thermal_violation),
             itertools.repeat(thermal_tolerance),
             itertools.repeat(elements_with_extra_threshold),
+            itertools.repeat(screen_all_buses),
         ):
             load, th_node_cap = result
             logger.debug("Ran thermal check on limit=%s load=%s", loading_limit, load["name"])
@@ -501,9 +578,10 @@ def thermal_overload_check(
     kw_step_thermal_violation,
     tolerance,
     elements_with_extra_threshold,
+    with_probes,
 ):
     """Returns the lowest capacity at which a violation occurs."""
-    compile_circuit(master_file)
+    compile_circuit(master_file, with_probes=with_probes)
     initial_kW = load["kW"] + kw_step_thermal_violation
     new_kW = initial_kW
     logger.debug("initial_kW=%s", initial_kW)
@@ -603,7 +681,7 @@ class ViolationBisector:
         return self._lowest_violation
 
 
-def compile_circuit(master_file: Path):
+def compile_circuit(master_file: Path, with_probes: bool = False) -> None:
     """Compiles a circuit and ensures that execution remains in the current directory."""
     logger.debug("Compile circuit from %s", master_file)
     orig = os.getcwd()
@@ -611,6 +689,8 @@ def compile_circuit(master_file: Path):
         dss.Text.Command(f"Compile {master_file}")
         dss.Text.Command("Set ControlMode=OFF") # wenbo added, to freeze control
         _ensure_energymeter_at_source()
+        if with_probes:
+            get_probe_loads() 
     finally:
         os.chdir(orig)
 
@@ -685,3 +765,43 @@ def export_circuit_element_properties(output_dir: Path):
 
     all_node_names = dss.Circuit.AllNodeNames()
     pd.DataFrame(all_node_names).to_csv(output_dir / "Allnodenames.csv")
+
+
+def _extract_topology():
+    def _bus_name(bus):
+        return bus.split(".")[0].lower()
+
+    coords = []
+    for bus in dss.Circuit.AllBusNames():
+        dss.Circuit.SetActiveBus(bus)
+        x, y = dss.Bus.X(), dss.Bus.Y()
+        if x != 0.0 or y != 0.0:   # OpenDSS returns 0,0 when no coord set
+            coords.append({"Bus": bus.lower(), "X": x, "Y": y})
+
+    lines = []
+    line_name = dss.Lines.First()
+    while line_name:
+        lines.append({
+            "Element_Type": "Line",
+            "Element": dss.Lines.Name(),
+            "From_Bus": _bus_name(dss.Lines.Bus1()),
+            "To_Bus": _bus_name(dss.Lines.Bus2()),
+            "Length":   dss.Lines.Length(),
+        })
+        line_name = dss.Lines.Next()
+
+    transformer_name = dss.Transformers.First()
+    while transformer_name:
+        dss.Circuit.SetActiveElement(f"Transformer.{dss.Transformers.Name()}")
+        buses = dss.CktElement.BusNames()
+        if len(buses) >= 2:
+            lines.append({
+                "Element_Type": "Transformer",
+                "Element": dss.Transformers.Name(),
+                "From_Bus": _bus_name(buses[0]),
+                "To_Bus": _bus_name(buses[1]),
+                "Length": 0.0,
+            })
+        transformer_name = dss.Transformers.Next()
+
+    return pd.DataFrame(coords), pd.DataFrame(lines)

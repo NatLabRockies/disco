@@ -41,6 +41,8 @@ class EVHostingCapacity:
             export_circuit_elements=False,
             output_dir=output_dir,
             num_cpus=self.num_cpus,
+            screen_all_buses=config.screen_all_buses,
+        
         )
 
         return EVHostingCapacityResults(

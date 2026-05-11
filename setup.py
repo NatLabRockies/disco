@@ -60,10 +60,12 @@ with open(os.path.join(here, "disco", "version.py"), encoding="utf-8") as f:
 version = lines[0].split()[2].strip('"').strip("'")
 
 install_requires = [
+    "NREL-ditto",
     "NREL-jade~=0.9.3",
     "chevron~=0.14.0",
     "click~=8.0",
     "filelock~=3.8",
+    "grid-data-models",
     "matplotlib~=3.6",
     "networkx~=2.8",
     "opendssdirect.py~=0.9.0",

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 
+
 class EVHostingCapacityResults:
     def __init__(self, v_df, th_df, plot_df, output_dir, feeder_name):
         self._v_df = v_df
@@ -88,6 +89,17 @@ class EVHostingCapacityResults:
         df = self._read_table("simulation_metadata")
         return dict(zip(df["key"], df["value"]))
     
+    def bus_coordinates(self) -> pd.DataFrame:
+        return self._read_table("bus_coordinates")
+    def line_segments(self) -> pd.DataFrame:
+        return self._read_table("line_segments")
+    @property
+    def plots(self) -> "EVHostingCapacityPlots":
+        from .plots import EVHostingCapacityPlots
+        return EVHostingCapacityPlots(self)
+    
+
+
 
 
     @classmethod
