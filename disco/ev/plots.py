@@ -47,18 +47,34 @@ class EVHostingCapacityPlots:
             ax.text(row["X"], row["Y"], str(row["Bus"]),
                     fontsize=fontsize, ha="left", va="bottom")
 
-    def _finish(self, ax, mappable, title, save):
+    def _finish(self, ax, mappable, title, save_path=None):
         plt.colorbar(mappable, ax=ax, label="EV hosting capacity (kW)")
         ax.set_title(title)
         ax.set_aspect("equal", adjustable="datalim")
         ax.axis("off")
-        if save:
-            ax.figure.savefig(save, dpi=200, bbox_inches="tight")
+
+        if save_path:
+            ax.figure.savefig(save_path, dpi=200, bbox_inches="tight")
+
         return ax
+
+    
+    def _resolve_save_path(self, save, output_dir, filename):
+        if not save:
+            return None
+
+        if save is True:
+            out = Path(output_dir) if output_dir else self._results._output_dir
+            save_path = out / filename
+        else:
+            save_path = Path(save)
+
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        return save_path
 
     # ---- plots --------------------------------------------------------------
 
-    def density(self, ax=None, cmap="turbo", save=None):
+    def density(self, ax=None, cmap="turbo", save=False, output_dir=None):
         """Interpolated EV hosting capacity heatmap (matches lindistflow style)."""
         df = self.bus.dropna(subset=[HC, "X", "Y"])
         x = df["X"].to_numpy()
@@ -88,21 +104,17 @@ class EVHostingCapacityPlots:
         ax.scatter(all_buses["X"], all_buses["Y"], c="black", s=25)
         self._label_buses(ax)
 
-
-        # # Draw every bus that has coordinates, not just HC-valid ones.
-        # all_buses = self.bus.dropna(subset=["X", "Y"])
-        # ax.scatter(all_buses["X"], all_buses["Y"], c="black", s=25)
-        # self._label_buses(ax)
-
         ax.set_title("EV Hosting Capacity - Density")
         ax.axis("equal")
         ax.axis("off")
         ax.figure.tight_layout()
-        if save:
-            ax.figure.savefig(save, dpi=200, bbox_inches="tight")
+        save_path = self._resolve_save_path(save, output_dir, "ev_hc_density.png")
+
+        if save_path:
+            ax.figure.savefig(save_path, dpi=200, bbox_inches="tight")
         return ax
 
-    def contour(self, ax=None, levels=24, cmap="turbo", save=None):
+    def contour(self, ax=None, levels=20, cmap="turbo", save=False, output_dir=None):
         df, gx, gy, gz = self._grid()
         if ax is None:
             _, ax = plt.subplots(figsize=(6, 5))
@@ -112,9 +124,10 @@ class EVHostingCapacityPlots:
         self._draw_feeder(ax, color="0.15")
         ax.scatter(df["X"], df["Y"], s=18, c="black", zorder=3)
         self._label_buses(ax)
-        return self._finish(ax, cf, "EV Hosting Capacity - Contour", save)
+        save_path = self._resolve_save_path(save, output_dir, "ev_hc_contour.png")
+        return self._finish(ax, cf, "EV Hosting Capacity - Contour", save_path)
 
-    def branch(self, ax=None, cmap="turbo", linewidth=3.0, save=None):
+    def branch(self, ax=None, cmap="turbo", linewidth=3.0, save=False, output_dir=None):
         """Color each feeder line segment by the to-bus hosting capacity."""
         xy = self.bus.set_index("Bus")
         segments, values = [], []
@@ -135,9 +148,10 @@ class EVHostingCapacityPlots:
         nodes = self.bus.dropna(subset=["X", "Y"])
         ax.scatter(nodes["X"], nodes["Y"], s=14, c="black", zorder=3)
         self._label_buses(ax)
-        return self._finish(ax, lc, "EV Hosting Capacity - Branch", save)
+        save_path = self._resolve_save_path(save, output_dir, "ev_hc_branch.png")
+        return self._finish(ax, lc, "EV Hosting Capacity - Branch", save_path)
 
-    def nodal(self, ax=None, cmap="turbo", size=42, save=None):
+    def nodal(self, ax=None, cmap="turbo", size=42, save=False, output_dir=None):
         df = self.bus.dropna(subset=[HC, "X", "Y"])
         if ax is None:
             _, ax = plt.subplots(figsize=(6, 5))
@@ -146,19 +160,13 @@ class EVHostingCapacityPlots:
                         vmin=self.vmin, vmax=self.vmax,
                         edgecolor="black", linewidth=0.35, zorder=2)
         self._label_buses(ax)
-        return self._finish(ax, sc, "EV Hosting Capacity - Nodal", save)
+        save_path = self._resolve_save_path(save, output_dir, "ev_hc_nodal.png")    
+        return self._finish(ax, sc, "EV Hosting Capacity - Nodal", save_path)
 
     # ---- batch save ---------------------------------------------------------
 
-    def all(self, output_dir=None, save=False):
-        if save:
-            out = Path(output_dir) if output_dir else self._results._output_dir
-            out.mkdir(parents=True, exist_ok=True)
-            for name, fn in [("density", self.density), ("contour", self.contour),
-                             ("branch", self.branch), ("nodal", self.nodal)]:
-                fn(save=out / f"ev_hc_{name}.png")
-                plt.close()
-
+    def all(self, save=False, output_dir=None):
+        save_path = self._resolve_save_path(save, output_dir, "ev_hc_all.png")
         fig, axes = plt.subplots(2, 2, figsize=(14, 11))
         self.density(ax=axes[0, 0])
         self.contour(ax=axes[0, 1])
@@ -166,7 +174,6 @@ class EVHostingCapacityPlots:
         self.nodal(ax=axes[1, 1])
         fig.suptitle(f"EV Hosting Capacity — {self._results._feeder_name}", fontsize=14)
         fig.tight_layout()
-        if save:
-            fig.savefig(out / "ev_hc_panel.png", dpi=200, bbox_inches="tight")
-        plt.show()
-        return fig
+        if save_path:
+            fig.savefig(save_path, dpi=200, bbox_inches="tight")
+        #return fig
