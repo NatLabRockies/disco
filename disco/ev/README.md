@@ -59,7 +59,7 @@ Max capacity:        2660 kW
 results.plots.density()
 ```
 
-![EV hosting capacity density map](images/density.png)
+<img src="images/density.png" alt="EV hosting capacity density map" width="500">
 
 `results.plots` also exposes `.contour()`, `.branch()`, `.nodal()`, and `.all()` (a 2×2
 panel of all four).
