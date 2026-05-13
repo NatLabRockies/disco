@@ -9,6 +9,8 @@ before violating voltage or thermal limits, using OpenDSS power flow simulations
 git clone <repo>
 cd disco
 pip install -e .
+
+git switch ww/evhc
 ```
 
 ## Quick Start
