@@ -20,8 +20,8 @@ The Python API is built around three classes: `Feeder`, `EVHostingCapacity`, and
 import disco
 from pathlib import Path
 
-master = Path(r"C:\path\to\13Bus_standard_format\Master.dss")
-output_dir = Path(r"C:\path\to\output\opendss_13Bus")
+master = Path("disco/ev/example_feeders/opendss/ieee13/Master.dss")
+output_dir = Path("output/opendss_13Bus")
 
 feeder = disco.Feeder.from_opendss(master)
 results = disco.EVHostingCapacity(feeder=feeder).run(output_dir=output_dir)
