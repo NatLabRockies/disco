@@ -20,33 +20,49 @@ The Python API is built around three classes: `Feeder`, `EVHostingCapacity`, and
 import disco
 from pathlib import Path
 
-master = Path(r"C:\path\to\IEEE123Master.dss")
-output_dir = Path(r"C:\path\to\output_EV_hosting_capacity\123Bus")
+master = Path(r"C:\path\to\13Bus_standard_format\Master.dss")
+output_dir = Path(r"C:\path\to\output\opendss_13Bus")
 
 feeder = disco.Feeder.from_opendss(master)
-results = disco.EVHostingCapacity(feeder=feeder, num_cpus=12).run(output_dir=output_dir)
+results = disco.EVHostingCapacity(feeder=feeder).run(output_dir=output_dir)
 
-print(results)             # uses __repr__ → summary()
+print(results.summary())
 ```
+
+`Feeder` can also be built from a [GDM](https://github.com/NREL/grid-data-models)
+distribution-system JSON via `disco.Feeder.from_gdm(gdm_path)` — this writes a
+sibling `<stem>_opendss_export/Master.dss` using `ditto` and points the `Feeder`
+at it. The rest of the pipeline is identical.
 
 Example output:
 
 ```
-EV Hosting Capacity Summary — 123Bus Feeder
-===========================================
-Nodes analyzed:      92
-Voltage-limited:     92 nodes
-Thermal-limited:     0 nodes
-Median capacity:     0 kW
-Mean capacity:       10869 kW
-Min capacity:        0 kW
-Max capacity:        999990 kW
+EV Hosting Capacity Summary — 13Bus_standard_format Feeder
+==========================================================
+Nodes analyzed:      15
+Voltage-limited:     0 nodes
+Thermal-limited:     15 nodes
+Median capacity:     40 kW
+Mean capacity:       393 kW
+Min capacity:        10 kW
+Max capacity:        2660 kW
 ```
 
-> **Reading the summary** — `Median: 0 kW` means a large share of nodes already violate
-> voltage at their current load (the bisection hit its lower bound). `Max: 999990 kW` is
-> the bisector's `UPPER_CAP` sentinel: those nodes never triggered a violation even at
-> the cap, so their "real" capacity is unbounded by this analysis.
+> **Reading the summary** — `Voltage-limited`/`Thermal-limited` is the count of nodes
+> whose binding constraint was each type. A `Min capacity: 0 kW` would mean some nodes
+> already violate at their baseline load; a `Max capacity` near 999990 kW would be the
+> bisector's `UPPER_CAP` sentinel (no violation reachable, capacity effectively unbounded).
+
+### Visualizing the result
+
+```python
+results.plots.density()
+```
+
+![EV hosting capacity density map](images/density.png)
+
+`results.plots` also exposes `.contour()`, `.branch()`, `.nodal()`, and `.all()` (a 2×2
+panel of all four).
 
 ### Loading a past run without re-simulating
 
@@ -60,6 +76,24 @@ print(results.summary())
 This reads everything back from `output_dir/disco_ev_hc.db`. Useful when iterating on
 analysis without paying the simulation cost again.
 
+## Output
+
+A successful run produces a single self-contained file:
+
+```
+output_dir/
+└── disco_ev_hc.db        # SQLite database — all tables below
+```
+
+Open it with any SQLite viewer (DB Browser for SQLite, VS Code's SQLite extension,
+the `sqlite3` CLI) or read tables back via `EVHostingCapacityResults` methods.
+
+Stored tables: `voltage_screen`, `thermal_screen`, `additional_capacity`, `chargers`,
+`bus_distances`, `bus_coordinates`, `line_segments`, `simulation_metadata`.
+
+Computed on the fly (not stored): `hosting_capacity()` — the recommended per-load answer,
+combining voltage and thermal screens with a `Binding_constraint` column.
+
 ## The Three Classes
 
 ### `disco.Feeder`
@@ -68,9 +102,10 @@ Represents a feeder loaded from an OpenDSS master file.
 
 | Method / Attribute | Returns | Notes |
 |---|---|---|
-| `Feeder.from_opendss(master_path)` | `Feeder` | Classmethod constructor |
-| `feeder.master_file` | `Path` | Path to `Master.dss` |
-| `feeder.name` | `str` | Derived from the OpenDSS circuit name |
+| `Feeder.from_opendss(master_path)` | `Feeder` | Classmethod — wrap an existing OpenDSS `Master.dss` |
+| `Feeder.from_gdm(gdm_path)` | `Feeder` | Classmethod — convert a GDM JSON to OpenDSS via `ditto`, then wrap it |
+| `feeder.master_file` | `Path` | Path to `Master.dss` (the one actually used by the run) |
+| `feeder.name` | `str` | Feeder name (parent dir name, or GDM stem when built `from_gdm`) |
 | `feeder.validate()` | `None` | Raises if the master file can't be compiled |
 
 ### `disco.EVHostingCapacity`
@@ -97,98 +132,14 @@ the run's SQLite DB (lazy, queried each call).
 | `chargers()` | `DataFrame` | SQLite table `chargers` |
 | `bus_distances()` | `DataFrame` | SQLite table `bus_distances` |
 | `simulation_metadata()` | `dict[str, str]` | SQLite table `simulation_metadata` |
+| `bus_coordinates()` | `DataFrame` | SQLite table `bus_coordinates` (used by plots) |
+| `line_segments()` | `DataFrame` | SQLite table `line_segments` (used by plots) |
+| `plots` *(property)* | `EVHostingCapacityPlots` | `.density()`, `.contour()`, `.branch()`, `.nodal()`, `.all()` |
 | `db_path` *(property)* | `Path` | Path to `disco_ev_hc.db` |
 | `EVHostingCapacityResults.from_db(output_dir)` *(classmethod)* | instance | Reload past run from disk |
 
 The two computed methods (`summary`, `hosting_capacity`) are the authoritative answer.
 The table readers expose raw inputs for ad-hoc analysis.
-
-## Output
-
-A successful run produces a single self-contained file:
-
-```
-output_dir/
-└── disco_ev_hc.db        # SQLite database — all tables below
-```
-
-Open it with any SQLite viewer (DB Browser for SQLite, VS Code's SQLite extension,
-the `sqlite3` CLI) or read tables back via `EVHostingCapacityResults` methods.
-
-### `voltage_screen`
-Per-load voltage hosting capacity. Read via `results.voltage_screen()`.
-
-| Column | Description |
-|--------|-------------|
-| `Load` | OpenDSS load name |
-| `Bus` | Bus the load is connected to |
-| `Initial_kW` | Baseline load (kW) |
-| `Volt_Violation` | First kW (during search) that triggered a voltage violation |
-| `Maximum_kW` | Highest kW that *passed* (no violation) |
-| `Max_voltage` | Highest bus voltage seen during search (P.U.) |
-| `Min_voltage` | Lowest bus voltage seen during search (P.U.) |
-
-### `thermal_screen`
-Per-load thermal hosting capacity. Read via `results.thermal_screen()`.
-
-| Column | Description |
-|--------|-------------|
-| `Load` | OpenDSS load name |
-| `Bus` | Bus the load is connected to |
-| `Initial_kW` | Baseline load (kW) |
-| `Thermal_Violation` | First kW (during search) that triggered a thermal violation |
-| `Maximum_kW` | Highest kW that *passed* |
-
-### `additional_capacity`
-Legacy diagnostic — additional EV load each node can absorb beyond its current load,
-computed *thermal-only* as `Thermal_Violation − Initial_kW`. For the
-voltage-and-thermal-aware answer, use `results.hosting_capacity()` instead.
-
-| Column | Description |
-|--------|-------------|
-| `Load` | OpenDSS load name |
-| `Bus` | Bus the load is connected to |
-| `Initial_kW` | Baseline load (kW) |
-| `Hosting_capacity(kW)` | Additional kW (thermal only) |
-
-### `chargers`
-Number of EV chargers assignable per load based on additional hosting capacity.
-
-| Column | Description |
-|--------|-------------|
-| `load` | OpenDSS load name |
-| `bus` | Bus the load is connected to |
-| `no. of level3` | Level 3 / XFC chargers (350 kW each) |
-| `no. of level2` | Level 2 chargers (7.2 kW each) |
-| `no. of level1` | Level 1 chargers (3.3 kW each) |
-
-### `bus_distances`
-Distance of each bus from the substation (used for spatial plots).
-
-| Column | Description |
-|--------|-------------|
-| `node` | Node name (e.g. `bus123.1`) |
-| `distance` | Path distance from substation (in feeder units) |
-
-### `simulation_metadata`
-Run configuration as key/value rows. Read as a dict via `results.simulation_metadata()`.
-
-Currently records: `feeder_name`, `lower_voltage_limit`, `upper_voltage_limit`,
-`thermal_loading_limit`, `run_timestamp`. Schema is open — adding a field requires no
-migration, just pass another kwarg at the call site.
-
-### Computed: `hosting_capacity()`
-
-The recommended per-load answer. Combines voltage and thermal screens. Not a stored
-table — built on the fly from `voltage_screen` and `thermal_screen`.
-
-| Column | Description |
-|--------|-------------|
-| `Load` | OpenDSS load name |
-| `Bus` | Bus the load is connected to |
-| `Initial_kW` | Baseline load (kW) |
-| `Hosting_capacity_kW` | Additional kW = `min(Vmax, Thmax) − Initial_kW`, floored at 0 |
-| `Binding_constraint` | `"voltage"` or `"thermal"` — which limit was binding |
 
 ## Algorithm
 
@@ -235,25 +186,18 @@ Given the additional hosting capacity (kW) at each node, chargers are assigned g
 
 Example: 500 kW available → 1× L3 (350 kW) + 20× L2 (144 kW) + 1× L1 (3.3 kW)
 
-## Tips and Gotchas
+## Tips
 
-- **Default `num_cpus`** is `os.cpu_count()` — typically all logical cores. On a shared
-  workstation, leave 1–2 cores free (`num_cpus=os.cpu_count() - 2`).
-- **Each worker re-compiles OpenDSS** at the start of every load. For feeders with very
-  few loads (<30), the spawn overhead can dominate — try `num_cpus=4` first.
-- **Master.dss is mutated in place** during a run (solve directives stripped, replaced
-  with `Solve mode=snapshot`), then restored from a `.bk` backup in a `finally:` block.
-  The restore is robust to crashes; if you ever do see a stranded `.bk`, the original
-  file content is in there.
-- **Logging level** — `disco.ev` is set to `WARNING` by default. To see per-run progress
-  info, raise it in your notebook:
-  ```python
-  import logging
-  logging.basicConfig(level=logging.INFO, force=True)
-  logging.getLogger("disco.ev").setLevel(logging.INFO)
-  ```
-- **`results.summary()` returns a string.** Print it directly (`print(results.summary())`)
-  for nice multi-line rendering. The bare `results` shortcut also works because `__repr__`
-  delegates to `summary()`. Calling `results.summary()` *as the last line of a cell*
-  shows the escaped repr (`'EV Hosting...\\n========\\n...'`) — that's standard Python
-  string display, not a bug.
+- **Baseline power flow must be within limits.** The bisector starts from the existing
+  baseline load on each node and searches *upward* for the first violation. If the
+  feeder is already outside `[lower_voltage_limit, upper_voltage_limit]` or above
+  `thermal_loading_limit` at its baseline (before any EV load is added), affected nodes
+  report a hosting capacity of 0 kW — the search has nowhere to go. The run logs a
+  `WARNING` at startup in this case (`Initial condition has voltage violation before EV
+  load is added` / `Thermal violation exists initially`); check for it before
+  interpreting a result with many zero-capacity nodes. Fix the baseline (regulator
+  taps, capacitor settings, conductor sizing) and re-run.
+- **`num_cpus`** defaults to `os.cpu_count()` — typically all logical cores. On a shared
+  workstation, leave 1–2 cores free (`num_cpus=os.cpu_count() - 2`). Each worker
+  re-compiles OpenDSS at the start of every load it processes, so for feeders with very
+  few loads (<30) the spawn overhead can dominate — try `num_cpus=4` first.
