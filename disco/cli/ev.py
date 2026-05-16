@@ -8,7 +8,7 @@ import click
 
 from jade.loggers import setup_logging
 from jade.utils.utils import get_cli_string
-from disco.ev.feeder_EV_HC import run
+from disco.ev.feeder_screening import run
 
 
 logger = logging.getLogger(__name__)

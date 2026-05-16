@@ -7,9 +7,14 @@ from .results import EVHostingCapacityResults
 
 
 class EVHostingCapacity:
-    def __init__(self, feeder: Feeder, num_cpus: int = None):
+    def __init__(
+            self, 
+            feeder: Feeder, 
+            num_cpus: int = None,
+            config: EVHostingCapacityConfig | None = None,):
         self.feeder = feeder
         self.num_cpus = num_cpus
+        self.config = config or EVHostingCapacityConfig()
 
     def run(
             self, 
@@ -19,9 +24,9 @@ class EVHostingCapacity:
         
         
 
-        from disco.ev.feeder_EV_HC import run as _legacy_run
+        from disco.ev.feeder_screening import run as _legacy_run
         
-        config = config or EVHostingCapacityConfig()
+        config = self.config
         
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)

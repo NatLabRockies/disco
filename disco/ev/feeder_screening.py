@@ -17,6 +17,7 @@ import shutil
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+import time
 
 import sqlite3
 
@@ -56,28 +57,21 @@ def run(
     num_cpus=None,
     screen_all_buses: bool = False,
 ):
-    # This accounts for master files that enable time series mode.
-    # backup_file = master_file.with_suffix(".bk")
-    # shutil.copyfile(master_file, backup_file)
-    # with fileinput.input(files=[master_file], inplace=True) as f:
-    #     for line in f:
-    #         if not line.strip().lower().startswith("solve"):
-    #             print(line, end="")
-    #     print("Solve mode=snapshot")
 
-    backup_file = master_file.with_suffix(".bk")
-    shutil.copyfile(master_file, backup_file)
-
+    # Build a snapshot-mode copy of the master as a sibling of the original
+    # (so relative `Redirect Lines.dss` etc. still resolve). Original is never modified.
     original_lines = master_file.read_text().splitlines()
     kept_lines = [ln for ln in original_lines if not ln.strip().lower().startswith("solve")]
     kept_lines.append("Solve mode=snapshot")
-    master_file.write_text("\n".join(kept_lines) + "\n")
+
+    snapshot_master = master_file.with_name(f"{master_file.stem}_snapshot_{os.getpid()}.dss")
+    snapshot_master.write_text("\n".join(kept_lines) + "\n")
 
 
     try:
-        shutil.copyfile(master_file, output_dir / "Master.dss")
+        #shutil.copyfile(master_file, output_dir / "Master.dss")
         return _run(
-            master_file=master_file,
+            master_file=snapshot_master,
             feeder_name=feeder_name,
             lower_voltage_limit=lower_voltage_limit,
             upper_voltage_limit=upper_voltage_limit,
@@ -94,7 +88,8 @@ def run(
         )
     finally:
         #os.rename(backup_file, master_file)
-        shutil.move(str(backup_file), str(master_file))
+        #shutil.move(str(backup_file), str(master_file))
+        snapshot_master.unlink(missing_ok=True)
 
 
 def _run(
@@ -116,7 +111,7 @@ def _run(
 ):
     db_path = output_dir / "disco_ev_hc.db"
     conn = sqlite3.connect(db_path)
-    
+    t0 = time.perf_counter()
 
 
     
@@ -215,7 +210,7 @@ def _run(
         #################### for plotting results ####################################################
 
         load_bus = pd.DataFrame()
-        load_bus["Load"] = th_output_df["Load"]  #
+        #load_bus["Load"] = th_output_df["Load"]  #
         load_bus["Bus"] = th_output_df["Bus"]
         node_distance = pd.DataFrame()
         node_distance["Node"] = dss.Circuit.AllNodeNames()
@@ -231,41 +226,33 @@ def _run(
 
         plot_df = dist_file.sort_values(by=["Distance"])
 
-        # # plot voltage violation scenarios
-        # plot_capacity_V(
-        #     plot_df,
-        #     "Initial_MW",
-        #     f"Volt_Violation_{lower_voltage_limit}",
-        #     output_dir,
-        # )
 
-        # # plot thermal violation
-        # # TODO: Priti, is the last parameter correct?
-        # plot_capacity_thermal_1(
-        #     plot_df,
-        #     "Initial_MW",
-        #     f"Thermal_Violation_{thermal_loading_limit}",
-        #     output_dir,
-        #     thermal_loading_limit,
-        # )
+        ## Hosting capacity = min(voltage, thermal) - initial, per bus
+        hc_join = th_output_df[["Bus", "Initial_kW", "Maximum_kW"]].rename(
+            columns={"Maximum_kW": "Maximum_kW_thermal"}
+        ).merge(
+            v_output_df[["Bus", "Maximum_kW"]].rename(columns={"Maximum_kW": "Maximum_kW_voltage"}),
+            on="Bus", how="outer",
+        )
+        
+        hosting_capacity_df = pd.DataFrame()
+        hosting_capacity_df["Bus"] = hc_join["Bus"]
+        hosting_capacity_df["Initial_kW"] = hc_join["Initial_kW"]
+        hosting_capacity_df["Maximum_kW"] = np.minimum(
+            hc_join["Maximum_kW_voltage"], hc_join["Maximum_kW_thermal"]
+        )
+        hosting_capacity_df["Hosting_capacity_kW"] = np.maximum(
+            hosting_capacity_df["Maximum_kW"] - hosting_capacity_df["Initial_kW"], 0.0
+        )
+        hosting_capacity_df["Binding_constraint"] = np.where(
+            hc_join["Maximum_kW_voltage"] < hc_join["Maximum_kW_thermal"], "voltage", "thermal"
+        )
 
-        ### Assuming the hosting capacity is limited by thermal loading ##############################
+        hosting_capacity_df.to_sql("hosting_capacity", conn, if_exists="replace", index=False)
+        
 
-        ## Difference of initial load and maximum hosting capacity (assuming always thermal limit occurs first)
-        diff = th_output_df["Thermal_Violation"] - th_output_df["Initial_kW"]
-        new_df = pd.DataFrame()
-
-        new_df["Load"] = th_output_df["Load"]
-        new_df["Bus"] = th_output_df["Bus"]
-        new_df["Initial_kW"] = th_output_df["Initial_kW"]
-        new_df["Additional_capacity_kW"] = diff  # additional load it can support
-
-        # new_df.to_csv(
-        #     output_dir / f"Additional_HostingCapacity_{thermal_loading_limit}.csv",
-        #     index=False,
-        # )
-        new_df.to_sql("additional_capacity", conn, if_exists="replace", index=False)
         # Find number of ev chargers for each node.
+        
         chargers_3_2_1 = levels_of_charger(th_output_df)
         chargers_3_2_1.to_sql("chargers", conn, if_exists="replace", index=False)
         dist_file.to_sql("bus_distances", conn, if_exists="replace", index=False)
@@ -277,6 +264,7 @@ def _run(
             upper_voltage_limit=upper_voltage_limit,
             thermal_loading_limit=thermal_loading_limit,
             run_timestamp=pd.Timestamp.now().isoformat(),
+            runtime_seconds=round(time.perf_counter() - t0, 2),
             screen_all_buses=screen_all_buses,
         )
 
@@ -347,8 +335,7 @@ def get_loads() -> list[dict]:
 def get_probe_loads(exclude_source: bool = True) -> list[dict]:
     """Add a small probe Load at every non-source bus on top of any existing
     loads. The probe's physical kW (1.0) is a placeholder — the bisector
-    overwrites it on iteration 1. We report load["kW"]=0 so Initial_kW reads
-    as zero and HC = Maximum_kW = additional hostable capacity at the bus."""
+    overwrites it on iteration 1. """
     source_bus = None
     if exclude_source:
         sources = dss.Vsources.AllNames()
@@ -356,6 +343,17 @@ def get_probe_loads(exclude_source: bool = True) -> list[dict]:
             dss.Vsources.Name(sources[0])
             source_bus = dss.CktElement.BusNames()[0].split(".")[0].lower()
 
+        # Sum real-load kW by stripped bus name — becomes Initial_kW for each probe.
+    baseline_kw_by_bus: dict[str, float] = {}
+    real_flag = dss.Loads.First()
+    while real_flag:
+        bus_str = dss.CktElement.BusNames()[0].split(".")[0].lower()
+        baseline_kw_by_bus[bus_str] = baseline_kw_by_bus.get(bus_str, 0.0) + dss.Loads.kW()
+        real_flag = dss.Loads.Next()
+
+      
+    
+    
     probes = []
     for bus in dss.Circuit.AllBusNames():
         bus_lower = bus.lower()
@@ -389,7 +387,7 @@ def get_probe_loads(exclude_source: bool = True) -> list[dict]:
         probes.append({
             "name": name,
             "kV": kv,
-            "kW": 0.0,            # reported as Initial_kW; probe contributes no baseline
+            "kW": baseline_kw_by_bus.get(bus_lower, 0.0),            # reported as Initial_kW; probe contributes no baseline
             "PF": 1.0,
             "Delta_conn": False,
             "kVar": 0.0,
@@ -431,7 +429,7 @@ def calculate_voltage_hosting_capacity(
     v_output_list = []
     v_threshold = []
     v_allow_limit = []
-    v_names = []
+    #v_names = []
     v_bus_name = []
     v_default_load = []
     v_maxv = []
@@ -452,18 +450,18 @@ def calculate_voltage_hosting_capacity(
             v_allowable_load = cap_limit - kw_step_voltage_violation
             v_threshold.append(cap_limit)
             v_allow_limit.append(v_allowable_load)
-            v_names.append(load["name"])
+            #v_names.append(load["name"])
             v_bus_name.append(load["bus1"])
             v_default_load.append(load["kW"])
             v_maxv.append(vmax)
             v_minv.append(vmin)
 
-        v_lst = [v_names, v_bus_name, v_default_load, v_threshold, v_allow_limit, v_maxv, v_minv]
+        v_lst = [v_bus_name, v_default_load, v_threshold, v_allow_limit, v_maxv, v_minv]
         v_output_list = list(map(list, zip(*v_lst)))
         v_output_df = pd.DataFrame(
             v_output_list,
             columns=[
-                "Load",
+                #"Load",
                 "Bus",
                 "Initial_kW",
                 "Volt_Violation",
@@ -510,7 +508,7 @@ def node_V_capacity_check(
     voltages = np.array(dss.Circuit.AllBusMagPu())
     vmax = np.max(voltages)
     vmin = np.min(voltages)
-    return load, cap_limit, vmax, vmin
+    return load, cap_limit + load["kW"], vmax, vmin
 
 
 def set_load_and_solve(load_name, kw):
@@ -531,7 +529,7 @@ def calculate_thermal_hosting_capacity(
     """Calculate hosting capacity based on voltage and store the result in a DataFrame."""
     th_threshold = []
     th_allow_limit = []
-    th_names = []
+    #th_names = []
     th_bus_name = []
     th_default_load = []
     th_lst = []
@@ -552,12 +550,12 @@ def calculate_thermal_hosting_capacity(
             th_allowable_load = th_node_cap - kw_step_thermal_violation
             th_threshold.append(th_node_cap)
             th_allow_limit.append(th_allowable_load)
-            th_names.append(load["name"])
+            #th_names.append(load["name"])
             th_bus_name.append(load["bus1"])
             th_default_load.append(load["kW"])
 
     th_lst = [
-        th_names,
+        #th_names,
         th_bus_name,
         th_default_load,
         th_threshold,
@@ -566,7 +564,10 @@ def calculate_thermal_hosting_capacity(
     th_output_list = list(map(list, zip(*th_lst)))
     th_output_df = pd.DataFrame(
         th_output_list,
-        columns=["Load", "Bus", "Initial_kW", "Thermal_Violation", "Maximum_kW"],
+        columns=[
+            #"Load", 
+            "Bus", 
+            "Initial_kW", "Thermal_Violation", "Maximum_kW"],
     )
     return th_output_df
 
@@ -621,7 +622,7 @@ def thermal_overload_check(
         )
         new_kW, done = bisector.get_next_value(last_result_violation=last_result_violation)
 
-    return load, bisector.get_lowest_violation()
+    return load, bisector.get_lowest_violation() + load["kW"]
 
 
 class ViolationBisector:

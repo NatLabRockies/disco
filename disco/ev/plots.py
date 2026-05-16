@@ -101,8 +101,8 @@ class EVHostingCapacityPlots:
         ax.figure.colorbar(heatmap, ax=ax, label="EV Hosting Capacity (kW)")
 
         all_buses = self.bus.dropna(subset=["X", "Y"])
-        ax.scatter(all_buses["X"], all_buses["Y"], c="black", s=25)
-        self._label_buses(ax)
+        #ax.scatter(all_buses["X"], all_buses["Y"], c="black", s=25)
+        #self._label_buses(ax)
 
         ax.set_title("EV Hosting Capacity - Density")
         ax.axis("equal")
@@ -114,7 +114,7 @@ class EVHostingCapacityPlots:
             ax.figure.savefig(save_path, dpi=200, bbox_inches="tight")
         return ax
 
-    def contour(self, ax=None, levels=20, cmap="turbo", save=False, output_dir=None):
+    def contour(self, ax=None, levels=12, cmap="turbo", save=False, output_dir=None):
         df, gx, gy, gz = self._grid()
         if ax is None:
             _, ax = plt.subplots(figsize=(6, 5))
@@ -122,8 +122,8 @@ class EVHostingCapacityPlots:
                          levels=np.linspace(self.vmin, self.vmax, levels),
                          cmap=cmap, alpha=0.85)
         self._draw_feeder(ax, color="0.15")
-        ax.scatter(df["X"], df["Y"], s=18, c="black", zorder=3)
-        self._label_buses(ax)
+        #ax.scatter(df["X"], df["Y"], s=18, c="black", zorder=3)
+        #self._label_buses(ax)
         save_path = self._resolve_save_path(save, output_dir, "ev_hc_contour.png")
         return self._finish(ax, cf, "EV Hosting Capacity - Contour", save_path)
 
@@ -146,8 +146,8 @@ class EVHostingCapacityPlots:
         ax.add_collection(lc)
         ax.autoscale_view()
         nodes = self.bus.dropna(subset=["X", "Y"])
-        ax.scatter(nodes["X"], nodes["Y"], s=14, c="black", zorder=3)
-        self._label_buses(ax)
+        #ax.scatter(nodes["X"], nodes["Y"], s=14, c="black", zorder=3)
+        #self._label_buses(ax)
         save_path = self._resolve_save_path(save, output_dir, "ev_hc_branch.png")
         return self._finish(ax, lc, "EV Hosting Capacity - Branch", save_path)
 
@@ -159,7 +159,7 @@ class EVHostingCapacityPlots:
         sc = ax.scatter(df["X"], df["Y"], c=df[HC], s=size, cmap=cmap,
                         vmin=self.vmin, vmax=self.vmax,
                         edgecolor="black", linewidth=0.35, zorder=2)
-        self._label_buses(ax)
+        #self._label_buses(ax)
         save_path = self._resolve_save_path(save, output_dir, "ev_hc_nodal.png")    
         return self._finish(ax, sc, "EV Hosting Capacity - Nodal", save_path)
 

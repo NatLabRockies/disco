@@ -15,26 +15,26 @@ class EVHostingCapacityResults:
         self._output_dir = Path(output_dir)
         self._feeder_name = feeder_name
 
-    def hosting_capacity(self) -> pd.DataFrame:
-        v_max = self._v_df.set_index("Load")["Maximum_kW"]
-        th_max = self._th_df.set_index("Load")["Maximum_kW"]
+    # def hosting_capacity(self) -> pd.DataFrame:
+    #     v_max = self._v_df.set_index("Bus")["Maximum_kW"]
+    #     th_max = self._th_df.set_index("Bus")["Maximum_kW"]
 
-        loads = self._th_df["Load"].values
-        v_max_vals = v_max.reindex(loads).values
-        th_max_vals = th_max.reindex(loads).values
-        initial_kw = self._th_df["Initial_kW"].values
+    #     buses = self._th_df["Bus"].values
+    #     v_max_vals = v_max.reindex(buses).values
+    #     th_max_vals = th_max.reindex(buses).values
+    #     initial_kw = self._th_df["Initial_kW"].values
 
-        combined_max = th_max_vals # np.minimum(v_max_vals, th_max_vals)
-        hc_kw = np.maximum(combined_max - initial_kw, 0.0)
-        binding = "thermal" # np.where(v_max_vals <= th_max_vals, "voltage", "thermal")
+    #     combined_max = np.minimum(v_max_vals, th_max_vals)
+    #     hc_kw = np.maximum(combined_max - initial_kw, 0.0)
+    #     binding = np.where(v_max_vals <= th_max_vals, "voltage", "thermal")
 
-        return pd.DataFrame({
-            "Load": loads,
-            "Bus": self._th_df["Bus"].values,
-            "Initial_kW": initial_kw,
-            "Hosting_capacity_kW": hc_kw,
-            "Binding_constraint": binding,
-        })
+    #     return pd.DataFrame({
+    #         #"Load": loads,
+    #         "Bus": buses,
+    #         "Initial_kW": initial_kw,
+    #         "Hosting_capacity_kW": hc_kw,
+    #         "Binding_constraint": binding,
+    #     })
 
     def summary(self) -> str:
         hc = self.hosting_capacity()
@@ -42,11 +42,15 @@ class EVHostingCapacityResults:
         n_voltage = int((hc["Binding_constraint"] == "voltage").sum())
         n_thermal = int((hc["Binding_constraint"] == "thermal").sum())
         hc_kw = hc["Hosting_capacity_kW"]
+        meta = self.simulation_metadata()
+        duration = meta.get("runtime_seconds")
+        duration_str = f"{float(duration):.2f} seconds" if duration is not None else "unknown"
 
         title = f"EV Hosting Capacity Summary — {self._feeder_name} Feeder"
         lines = [
             title,
             "=" * len(title),
+            f"Runtime:             {duration_str}",
             f"Nodes analyzed:      {n_total}",
             f"Voltage-limited:     {n_voltage} nodes",
             f"Thermal-limited:     {n_thermal} nodes",
@@ -69,15 +73,18 @@ class EVHostingCapacityResults:
     def _read_table(self, table: str) -> pd.DataFrame:
         with sqlite3.connect(self.db_path) as conn:
             return pd.read_sql(f"SELECT * FROM {table}", conn)
-        
+    def hosting_capacity(self) -> pd.DataFrame:
+        return self._read_table("hosting_capacity")
+
+
+
+
     def voltage_screen(self) -> pd.DataFrame:
         return self._read_table("voltage_screen")
     
     def thermal_screen(self) -> pd.DataFrame:
         return self._read_table("thermal_screen")
 
-    def additional_capacity(self) -> pd.DataFrame:
-        return self._read_table("additional_capacity")
 
     def chargers(self) -> pd.DataFrame:
         return self._read_table("chargers")
@@ -115,7 +122,7 @@ class EVHostingCapacityResults:
         inst._output_dir = output_dir
         inst._plot_df = None                 # not stored in DB
         inst._feeder_name = inst.simulation_metadata().get("feeder_name", "unknown")
-        inst._v_df = inst.voltage_screen()
-        inst._th_df = inst.thermal_screen()
+        inst._v_df = None #inst.voltage_screen()
+        inst._th_df = None #inst.thermal_screen()
         return inst
 

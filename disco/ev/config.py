@@ -56,12 +56,12 @@ class Feeder:
 @dataclass
 class EVHostingCapacityConfig:
     """Tunable parameters for EV Hosting Capacity analysis."""
-    voltage_lower_limit_pu: float = 0.92
-    voltage_upper_limit_pu: float = 1.08
+    voltage_lower_limit_pu: float = 0.95
+    voltage_upper_limit_pu: float = 1.05
     voltage_step_kw: float = 10.0
     voltage_search_tolerance_kw: float = 10.0
 
-    thermal_loading_limit_percent: float = 120.0
+    thermal_loading_limit_percent: float = 100.0
     thermal_step_kw: float = 10.0
     thermal_search_tolerance_kw: float = 10.0
     existing_overload_headroom_percent: float = 5.0

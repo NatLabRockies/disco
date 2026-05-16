@@ -11,13 +11,13 @@ import pandas as pd
 
 
 def levels_of_charger(output_file):
-    load_name = []
+    #load_name = []
     bus_name = []
     xfc = []
     lvl2 = []
     lvl1 = []
     for i in range(len(output_file)):
-        load_ = output_file["Load"][i]
+        #load_ = output_file["Load"][i]
         bus_ = output_file["Bus"][i]
         tmp_data = output_file["Maximum_kW"][i] - output_file["Initial_kW"][i]
 
@@ -76,14 +76,14 @@ def levels_of_charger(output_file):
             no_of_lvl2 = 0
             no_of_lvl1 = 0
 
-        load_name.append(load_)
+        #load_name.append(load_)
         bus_name.append(bus_)
         xfc.append(no_of_xfc)
         lvl2.append(no_of_lvl2)
         lvl1.append(no_of_lvl1)
 
     df = pd.DataFrame()
-    df["load"] = load_name
+    #df["load"] = load_name
     df["bus"] = bus_name
     df["no. of level3"] = xfc
     df["no. of level2"] = lvl2
