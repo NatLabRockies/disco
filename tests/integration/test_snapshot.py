@@ -3,9 +3,10 @@
 import os
 import subprocess
 from pathlib import Path
-from PyDSS import thermal_metrics
-
 import pytest
+pytest.importorskip("PyDSS")
+
+from PyDSS import thermal_metrics
 import toml
 
 from jade.common import JOBS_OUTPUT_DIR

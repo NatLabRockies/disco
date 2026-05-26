@@ -6,6 +6,8 @@ import pytest
 from jade.utils.subprocess_manager import run_command
 from jade.utils.utils import load_data, dump_data
 
+pytest.importorskip("PyDSS")
+
 from PyDSS.common import SnapshotTimePointSelectionMode
 
 # Pre-defined filenames
