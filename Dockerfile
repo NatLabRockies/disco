@@ -35,12 +35,12 @@ RUN echo "slurm:x:989:989:SLURM workload manager:/var/lib/slurm:/bin/bash" >> /e
 RUN echo "slurm:x:989:" >> /etc/group
 
 WORKDIR /repos
-RUN git clone https://github.com/NREL/disco.git
+RUN git clone https://github.com/NatLabRockies/disco.git
 
 RUN pip install NREL-jade
 
 WORKDIR /repos
-RUN git clone https://github.com/NREL/PyDSS.git
+RUN git clone https://github.com/NatLabRockies/PyDSS.git
 WORKDIR /repos/PyDSS
 RUN git checkout report-metrics
 

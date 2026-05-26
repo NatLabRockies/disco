@@ -11,7 +11,7 @@ Pre-processing is performed on this dataset to prepare it for the analysis. The 
 
 Copy SMART-DS Dataset
 =====================
-The dataset can be copied to the analysis location using https://github.com/NREL/disco/blob/main/scripts/copy_smart_ds_dataset.py
+The dataset can be copied to the analysis location using https://github.com/NatLabRockies/disco/blob/main/scripts/copy_smart_ds_dataset.py
 
 
 Usage:
@@ -40,7 +40,7 @@ Here is the help:
 Restructure to substation transformer
 =====================================
 The SMART-DS dataset has Open DSS models defined at the feeder and substation level. In this stage, Open DSS models are restructured and defined such that the analysis can be performed at the substation transformer level. 
-This can be performed using https://github.com/NREL/disco/blob/main/scripts/smartds_restructuring_transformer_folder.py
+This can be performed using https://github.com/NatLabRockies/disco/blob/main/scripts/smartds_restructuring_transformer_folder.py
 
 Usage:
 
@@ -59,7 +59,7 @@ Feeder screening & model fixes
 ==============================
 In this, all the base-case feeders are passed through a preliminary screening process. 
 Here, disconnected nodes are removed, and the models are checked for connectivity, isolated nodes and extreme cases of thermal or voltage violations.
-These would need to be addressed before proceeding to the hosting capacity analysis. This can be done using https://github.com/NREL/Distribution-Integration-Analysis/blob/master/scripts-simulation/generate_screening_jobs.py
+These would need to be addressed before proceeding to the hosting capacity analysis. This can be done using https://github.com/NatLabRockies/Distribution-Integration-Analysis/blob/master/scripts-simulation/generate_screening_jobs.py
 
 Usage:
 
