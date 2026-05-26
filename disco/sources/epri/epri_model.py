@@ -11,7 +11,10 @@ import click
 
 from jade.exceptions import InvalidParameter
 from jade.utils.utils import ExtendedJSONEncoder
-from PyDSS.common import ControllerType
+try:
+    from PyDSS.common import ControllerType
+except ImportError:
+    ControllerType = str
 
 from disco.cli.common import handle_existing_dir
 from disco.enums import SimulationType, SimulationHierarchy
