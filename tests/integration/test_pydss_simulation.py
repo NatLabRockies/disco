@@ -6,6 +6,7 @@ import shutil
 
 import pandas as pd
 import pytest
+pytest.importorskip("PyDSS")
 
 from jade.result import ResultsSummary
 from jade.utils.subprocess_manager import run_command

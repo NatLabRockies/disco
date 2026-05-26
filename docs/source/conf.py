@@ -19,8 +19,8 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'DISCO'
-copyright = '2019, NREL'
-author = 'NREL'
+copyright = '2019, NLR'
+author = 'NLR'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1'

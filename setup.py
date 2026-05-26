@@ -63,7 +63,7 @@ install_requires = [
     "NREL-jade~=0.10.0",
     "chevron~=0.14.0",
     "click~=8.0",
-    "dsspy==3.0.2",  # 3.0.4 has a breaking change
+    # "dsspy==3.0.2",  # removed from PyPI as of 3/2026; PyDSS is optional, install separately if needed
     "filelock~=3.8",
     "matplotlib~=3.6",
     "networkx~=2.8",
@@ -97,8 +97,8 @@ setup(
     description="DISCO",
     long_description=readme,
     long_description_content_type="text/markdown",
-    maintainer_email="daniel.thom@nrel.gov",
-    url="https://github.com/NREL/disco",
+    maintainer_email="daniel.thom@nlr.gov",
+    url="https://github.com/NatLabRockies/disco",
     packages=find_packages(),
     package_dir={"disco": "disco"},
     entry_points={

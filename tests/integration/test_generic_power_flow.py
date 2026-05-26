@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+import pytest
+pytest.importorskip("PyDSS")
+
 from jade.common import JOBS_OUTPUT_DIR
 from jade.utils.subprocess_manager import check_run_command
 from jade.utils.utils import load_data

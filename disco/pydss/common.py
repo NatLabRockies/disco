@@ -4,7 +4,11 @@ import enum
 import logging
 
 
-from PyDSS.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
+try:
+    from PyDSS.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
+except ImportError:
+    PF1_SCENARIO = "pf1"
+    CONTROL_MODE_SCENARIO = "control_mode"
 
 logger = logging.getLogger(__name__)
 

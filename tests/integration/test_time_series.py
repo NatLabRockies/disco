@@ -6,6 +6,8 @@ import shutil
 
 import pandas as pd
 import pytest
+pytest.importorskip("PyDSS")
+
 import toml
 
 from jade.result import ResultsSummary

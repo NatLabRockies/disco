@@ -19,10 +19,10 @@ models (as it does for DC-AC ratio for PVSystems).
 
 Refer to these input JSON files as examples:
 
-- `Snapshot <https://github.com/NREL/disco/blob/main/tests/data/snapshot_generic.json>`_
-- `Time Series <https://github.com/NREL/disco/blob/main/tests/data/time_series_generic.json>`_
+- `Snapshot <https://github.com/NatLabRockies/disco/blob/main/tests/data/snapshot_generic.json>`_
+- `Time Series <https://github.com/NatLabRockies/disco/blob/main/tests/data/time_series_generic.json>`_
 
-This `test file <https://github.com/NREL/disco/blob/main/tests/integration/test_generic_power_flow.py>`_
+This `test file <https://github.com/NatLabRockies/disco/blob/main/tests/integration/test_generic_power_flow.py>`_
 demonstrates the workflow.
 
 .. note:: If you enable external controls for PVSystems through PyDSS then the file specified as
@@ -70,7 +70,7 @@ Where in *format.toml*, it defines ``type = "SourceTree1Model"``.
 To see how to generate the PV deployments data in ``hc_pv_deployments`` directory, please
 refer to :ref:`SourceTree1PVDeployments`.
 
-The `SMART-DS <https://www.nrel.gov/grid/smart-ds.html>`_ dataset is an open-source dataset which is in the SourceTree1 format.
+The `SMART-DS <https://www.nlr.gov/grid/smart-ds.html>`_ dataset is an open-source dataset which is in the SourceTree1 format.
 This dataset is prepared for performing DISCO hosting capacity analysis after some pre-processing which is described in the link below:
 
 .. toctree::

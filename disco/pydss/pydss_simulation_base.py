@@ -6,9 +6,15 @@ import logging
 import os
 import re
 
-import PyDSS.exceptions as PyDssExceptions
-from PyDSS.pydss_project import update_pydss_controllers
-from PyDSS.pydss_project import PyDssProject, PyDssScenario
+try:
+    import PyDSS.exceptions as PyDssExceptions
+    from PyDSS.pydss_project import update_pydss_controllers
+    from PyDSS.pydss_project import PyDssProject, PyDssScenario
+except ImportError:
+    PyDssExceptions = None
+    update_pydss_controllers = None
+    PyDssProject = None
+    PyDssScenario = None
 
 from jade.events import StructuredLogEvent, EVENT_CATEGORY_ERROR
 from jade.jobs.job_execution_interface import JobExecutionInterface
