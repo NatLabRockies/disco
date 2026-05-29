@@ -1,9 +1,14 @@
 import logging
 import opendssdirect as dss
 
-from PyDSS.simulation_input_models import ProjectModel
-from PyDSS.common import SimulationType
-from PyDSS.controllers import CircuitElementController, ControllerManager
+try:
+    from PyDSS.simulation_input_models import ProjectModel
+    from PyDSS.common import SimulationType
+    from PyDSS.controllers import CircuitElementController, ControllerManager
+    PYDSS_AVAILABLE = True
+except ImportError:
+    ProjectModel = SimulationType = CircuitElementController = ControllerManager = None
+    PYDSS_AVAILABLE = False
 
 from disco.exceptions import PyDssConvergenceError
 
@@ -12,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 def define_initial_pydss_settings(**kwargs):
+    if not PYDSS_AVAILABLE:
+        raise ImportError(
+            "PyDSS is required for pydss controller solving but is not installed."
+        )
     settings = ProjectModel(
         max_control_iterations=50,
         error_tolerance=0.0001,

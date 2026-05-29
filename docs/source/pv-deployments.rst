@@ -19,8 +19,8 @@ The main command going to be used is the one below,
 
 There are several actions here related to PV deployments manipulation, including
 
-* ``redirect-pvshapes``: Redirect PVShape.dss in both substation and feeder Master.dss files.
 * ``transform-loads``: Transform Loads.dss file before conducting PV deployments.
+* ``redirect-pvshapes``: Redirect PVShape.dss in both substation and feeder Master.dss files.
 * ``generate-jobs``: Help generate ``create-pv`` and ``create-configs`` jobs in JSON, i.e., jade config.
 * ``restore-feeders``: Before and during PV deployments, Loads.dss and Master.dss files were modified, need to restore after that.
 * ``create-pv``: create PV deployments on feeders based on `placement`, `sample` and `penetration` levels.
@@ -32,29 +32,43 @@ There are several actions here related to PV deployments manipulation, including
 * ``list-feeders``: list feeder paths given input of region, substation or feeder.
 
 
-Redirect PVShapes
------------------
-Before performing PV deployments, we need to ensure the ``PVShapes.dss`` is redirected in the master 
-file located in substation and feeder directories. Two steps are required:
-
-First, you need to generate the PV profiles into a ``PVShapes.dss`` file on your own, and then
-copy the ``PVShapes.dss`` into each substation and feeder directories.
-
-Second, run the command below.
-
-.. code-block:: bash
-
-    $ disco pv-deployments source-tree-1 -a direct-pvshapes -h <hierarchy> INPUT_PATH
-
-
 Transform Loads
 ---------------
-Also, ``Loads.dss`` file under the feeder needs to be transformed before PV deployments, so that to
-change load model to suitable center-tap schema if needed. The command to run this is,
+``Loads.dss`` files need to be transformed before generating PV deployments.
+
+- Loads may need to be changed to use suitable center-tap schema.
+- Temporarily disconnect load shapes. The generation process compiles the OpenDSS circuit.
+  If load shapes are present, OpenDSS has to load the data and that can take significant
+  amounts of time. Load shapes are not needed by the generation process, and so it disables
+  them in the OpenDSS text files. A later step re-enables them.
+
+The command to run this is,
 
 .. code-block:: bash
 
     $ disco pv-deployments source-tree-1 -a transform-loads -h <hierarchy> INPUT_PATH
+
+
+Redirect PVShapes
+-----------------
+This workflow will generate OpenDSS files with varying counts and sizes of PVSystems. It will
+assign load shape profiles to those PVSystems from a pool of profiles. You must define these
+profiles in a ``PVShapes.dss`` file and copy that files to all substation and/or feeder
+directories.
+
+All ``Master.dss`` need to redirect to ``PVShapes.dss``. We recommend that you add these lines to
+your files. If you do that, you can skip to the next section.
+
+If your directory structure aligns with the ``source-tree-1`` expectations, the disco CLI command
+below will add the redirects automatically.
+
+.. todo:: Make this code handle all cases generically.
+
+Run this command:
+
+.. code-block:: bash
+
+    $ disco pv-deployments source-tree-1 -a redirect-pvshapes -h <hierarchy> INPUT_PATH
 
 
 Generate Jobs

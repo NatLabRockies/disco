@@ -1,9 +1,13 @@
-from typing import List, Optional, Set, Dict
-from pydantic import Field, root_validator, validator, ValidationError
+from typing import Any, List, Optional, Set, Dict
+from pydantic.v1 import Field, root_validator, validator
+from pydantic.v1.error_wrappers import ValidationError
 
 import pandas as pd
 
-from PyDSS.controllers import PvControllerModel
+try:
+    from PyDSS.controllers import PvControllerModel
+except ImportError:
+    PvControllerModel = Any
 
 from disco.models.base import BaseAnalysisModel
 from disco.models.upgrade_cost_analysis_equipment_model import *

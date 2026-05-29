@@ -130,7 +130,7 @@ Single Execution Mode
 ~~~~~~~~~~~~~~~~~~~~~
 1. Configure the simulation parameters and in an input JSON file called ``upgrades.json``.
 Refer to this
-`file <https://github.com/NREL/disco/blob/main/tests/data/test_upgrade_cost_analysis_generic.json>`_
+`file <https://github.com/NatLabRockies/disco/blob/main/tests/data/upgrade_cost_analysis_generic.json>`_
 as an example. The JSON schemas are defined in :ref:`upgrade_cost_analysis_schemas`.
 
 Each job represents one OpenDSS network and one upgrade simulation.
@@ -194,7 +194,7 @@ All the equipment in this database will be considered as available options while
 If this file is not provided, a technical database will be automatically generated from the given feeder model. 
 This would provide the thermal upgrades module with a limited set of upgrade options.
 Refer to this `sample technical equipment catalog
-<https://github.com/NREL/disco/blob/main/disco/extensions/upgrade_simulation/upgrades/technical_catalog.json>`_
+<https://github.com/NatLabRockies/disco/blob/main/disco/extensions/upgrade_simulation/upgrades/technical_catalog.json>`_
 for more information.
 
 
@@ -241,7 +241,7 @@ In this sub-module, the voltage violations present in the feeder are identified,
 
 **3. Upgrades Cost computation**
 A unit cost database is used to determine the total costs associated thermal and voltage upgrades determined through the workflows described above.
-Sample input cost database can be found `here <https://github.com/NREL/disco/blob/main/disco/extensions/upgrade_simulation/upgrades/Generic_DISCO_cost_database_v2.xlsx>`_
+Sample input cost database can be found `here <https://github.com/NatLabRockies/disco/blob/main/disco/extensions/upgrade_simulation/upgrades/Generic_DISCO_cost_database_v2.xlsx>`_
 
 
 

@@ -9,7 +9,10 @@ from pathlib import Path
 
 from jade.common import OUTPUT_DIR
 from jade.utils.utils import modify_file, interpret_datetime
-from PyDSS.common import DATE_FORMAT
+try:
+    from PyDSS.common import DATE_FORMAT
+except ImportError:
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 from disco.enums import SimulationType
 from disco.pydss.common import ConfigType

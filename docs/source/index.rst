@@ -6,7 +6,7 @@
 *******************
 DISCO Documentation
 *******************
-DISCO (Distribution Integration Solution Cost Options) is an NREL-developed, 
+DISCO (Distribution Integration Solution Cost Options) is an NLR-developed, 
 python-based software tool for conducting scalable, repeatable distribution analyses. 
 While DISCO was originally developed to support photovoltaic (PV) impact analyses, 
 it can also be used to understand the impact of other distributed energy resources (DER) 
@@ -30,13 +30,13 @@ and load changes on distribution systems. Analysis modules currently included in
 
 
 DISCO analysis is based on power flow modeling with OpenDSS used as the simulation engine. 
-PyDSS (https://nrel.github.io/PyDSS) is used to interface with OpenDSS 
+PyDSS (https://NatLabRockies.github.io/PyDSS) is used to interface with OpenDSS 
 and provide additional control layers. 
 
 The benefit of using DISCO instead of just directly using OpenDSS or PyDSS is two-fold:
 
 * DISCO provides the infrastructure required to run a large number of analyses 
-  by managing job submission and execution through JADE (https://nrel.github.io/jade/).
+  by managing job submission and execution through JADE (https://NatLabRockies.github.io/jade/).
 * DISCO provides ready-made, tested code to calculate snapshot and dynamic impact 
   metrics, allowing for repeatable analyses across projects and teams without 
   having to re-create code to process OpenDSS results. 
