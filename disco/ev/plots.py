@@ -114,6 +114,33 @@ class EVHostingCapacityPlots:
             ax.figure.savefig(save_path, dpi=200, bbox_inches="tight")
         return ax
 
+    def binding(self, ax=None, save=False, output_dir=None):
+        """Map each bus colored by which constraint binds (voltage vs thermal)."""
+        hc = self._results.hosting_capacity()
+        df = self.bus.merge(hc[["Bus", "Binding_constraint"]], on="Bus", how="left")
+        df = df.dropna(subset=["X", "Y", "Binding_constraint"])
+
+        if ax is None:
+            _, ax = plt.subplots(figsize=(6, 5))
+        self._draw_feeder(ax, color="0.75")
+
+        #palette = {"voltage": "tab:blue", "thermal": "tab:red"}
+        palette = {"thermal": "#c44e52", "voltage": "#4c72b0"}
+
+        for binding, color in palette.items():
+            sub = df[df["Binding_constraint"] == binding]
+            ax.scatter(sub["X"], sub["Y"], c=color, s=30,
+                    zorder=2, alpha=0.75, label=f"{binding} ({len(sub)})")
+        ax.legend(loc="best")
+        ax.set_title("EV Hosting Capacity - Binding")
+        ax.set_aspect("equal", adjustable="datalim")
+        ax.axis("off")
+        save_path = self._resolve_save_path(save, output_dir, "ev_hc_binding.png")
+        if save_path:
+            ax.figure.savefig(save_path, dpi=200, bbox_inches="tight")
+        return ax
+
+
     def contour(self, ax=None, levels=12, cmap="turbo", save=False, output_dir=None):
         df, gx, gy, gz = self._grid()
         if ax is None:
@@ -169,7 +196,7 @@ class EVHostingCapacityPlots:
         save_path = self._resolve_save_path(save, output_dir, "ev_hc_all.png")
         fig, axes = plt.subplots(2, 2, figsize=(14, 11))
         self.density(ax=axes[0, 0])
-        self.contour(ax=axes[0, 1])
+        self.binding(ax=axes[0, 1])
         self.branch(ax=axes[1, 0])
         self.nodal(ax=axes[1, 1])
         fig.suptitle(f"EV Hosting Capacity — {self._results._feeder_name}", fontsize=14)
