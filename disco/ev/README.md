@@ -39,6 +39,7 @@ Example output:
 ```
 EV Hosting Capacity Summary — 13Bus_standard_format Feeder
 ==========================================================
+Runtime:             12.34 seconds
 Nodes analyzed:      15
 Voltage-limited:     0 nodes
 Thermal-limited:     15 nodes
@@ -53,16 +54,38 @@ Max capacity:        2660 kW
 > already violate at their baseline load; a `Max capacity` near 999990 kW would be the
 > bisector's `UPPER_CAP` sentinel (no violation reachable, capacity effectively unbounded).
 
+### Tuning the analysis
+
+Pass an `EVHostingCapacityConfig` to override the default voltage/thermal limits and
+search parameters. It can go to either the constructor or `.run()`:
+
+```python
+from disco.ev.config import EVHostingCapacityConfig
+
+config = EVHostingCapacityConfig(
+    voltage_lower_limit_pu=0.96,
+    voltage_upper_limit_pu=1.06,
+    thermal_loading_limit_percent=120.0,
+)
+
+results = disco.EVHostingCapacity(feeder=feeder, config=config).run(output_dir=output_dir)
+```
+
+Defaults: `voltage_lower_limit_pu=0.95`, `voltage_upper_limit_pu=1.05`,
+`thermal_loading_limit_percent=100.0`, `voltage_step_kw`/`thermal_step_kw=10.0`,
+`voltage_search_tolerance_kw`/`thermal_search_tolerance_kw=10.0`,
+`existing_overload_headroom_percent=5.0`, `screen_all_buses=True`.
+
 ### Visualizing the result
 
 ```python
 results.plots.density()
 ```
 
-<img src="images/density.png" alt="EV hosting capacity density map" width="500">
+<img src="images/ev_hc_density.png" alt="EV hosting capacity density map" width="500">
 
-`results.plots` also exposes `.contour()`, `.branch()`, `.nodal()`, and `.all()` (a 2×2
-panel of all four).
+`results.plots` also exposes `.binding()`, `.contour()`, `.branch()`, `.nodal()`, and
+`.all()` (a 2×2 panel of density, binding, branch, and nodal).
 
 ### Loading a past run without re-simulating
 
@@ -88,11 +111,12 @@ output_dir/
 Open it with any SQLite viewer (DB Browser for SQLite, VS Code's SQLite extension,
 the `sqlite3` CLI) or read tables back via `EVHostingCapacityResults` methods.
 
-Stored tables: `voltage_screen`, `thermal_screen`, `additional_capacity`, `chargers`,
+Stored tables: `voltage_screen`, `thermal_screen`, `hosting_capacity`, `chargers`,
 `bus_distances`, `bus_coordinates`, `line_segments`, `simulation_metadata`.
 
-Computed on the fly (not stored): `hosting_capacity()` — the recommended per-load answer,
-combining voltage and thermal screens with a `Binding_constraint` column.
+The `hosting_capacity` table is the recommended per-load answer — it combines the voltage
+and thermal screens (taking the binding minimum) and includes a `Binding_constraint`
+column. Read it back via `results.hosting_capacity()`.
 
 ## The Three Classes
 
@@ -114,8 +138,8 @@ The simulation runner.
 
 | Method / Attribute | Returns | Notes |
 |---|---|---|
-| `EVHostingCapacity(feeder, num_cpus=None)` | instance | `num_cpus=None` → uses `os.cpu_count()` |
-| `.run(output_dir)` | `EVHostingCapacityResults` | Runs voltage + thermal bisections in parallel; writes to SQLite |
+| `EVHostingCapacity(feeder, num_cpus=None, config=None)` | instance | `num_cpus=None` → `os.cpu_count()`; `config=None` → `EVHostingCapacityConfig()` defaults |
+| `.run(output_dir, config=None)` | `EVHostingCapacityResults` | Runs voltage + thermal bisections in parallel; writes to SQLite |
 
 ### `disco.ev.results.EVHostingCapacityResults`
 
@@ -125,10 +149,9 @@ the run's SQLite DB (lazy, queried each call).
 | Method | Returns | Source |
 |---|---|---|
 | `summary()` | `str` | computed |
-| `hosting_capacity()` | `DataFrame` | computed; combines voltage + thermal, includes `Binding_constraint` |
+| `hosting_capacity()` | `DataFrame` | SQLite table `hosting_capacity`; combines voltage + thermal, includes `Binding_constraint` |
 | `voltage_screen()` | `DataFrame` | SQLite table `voltage_screen` |
 | `thermal_screen()` | `DataFrame` | SQLite table `thermal_screen` |
-| `additional_capacity()` | `DataFrame` | SQLite table `additional_capacity` (legacy diagnostic, thermal-only) |
 | `chargers()` | `DataFrame` | SQLite table `chargers` |
 | `bus_distances()` | `DataFrame` | SQLite table `bus_distances` |
 | `simulation_metadata()` | `dict[str, str]` | SQLite table `simulation_metadata` |
@@ -138,8 +161,8 @@ the run's SQLite DB (lazy, queried each call).
 | `db_path` *(property)* | `Path` | Path to `disco_ev_hc.db` |
 | `EVHostingCapacityResults.from_db(output_dir)` *(classmethod)* | instance | Reload past run from disk |
 
-The two computed methods (`summary`, `hosting_capacity`) are the authoritative answer.
-The table readers expose raw inputs for ad-hoc analysis.
+`summary()` and `hosting_capacity()` are the authoritative answer. The other table
+readers expose the raw voltage/thermal screens and inputs for ad-hoc analysis.
 
 ## Algorithm
 
