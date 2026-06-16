@@ -25,7 +25,7 @@ Refer to these input JSON files as examples:
 This `test file <https://github.com/NREL/disco/blob/main/tests/integration/test_generic_power_flow.py>`_
 demonstrates the workflow.
 
-.. note:: If you enable external controls for PVSystems through PyDSS then the file specified as
+.. note:: If you enable external controls for PVSystems through pydss then the file specified as
     ``opendss_model_file`` must contain the PVSystem definitions.
 
 The inputs must conform to the JSON schemas below.
@@ -175,8 +175,8 @@ Rules:
   * ``dc_ac_ratios``, ``kva_to_kw_ratings`` may be empty arrays to represent no-PV scenarios.
   * ``pydss_controllers`` has three attributes,
 
-      - ``controller_type``: One controller type defined in PyDSS, for example, "PvController".
-      - ``name``: One controller name registered in PyDSS registry.
+      - ``controller_type``: One controller type defined in pydss, for example, "PvController".
+      - ``name``: One controller name registered in pydss registry.
       - ``targets`` (optional): null, a DSS file, or a list of DSS files. If null, then DISCO automatically sets the deployment file.
 
 

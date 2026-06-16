@@ -7,8 +7,8 @@ from jade.exceptions import InvalidParameter, InvalidConfiguration
 from jade.extensions.generic_command.generic_command_parameters import GenericCommandParameters
 from jade.utils.utils import load_data
 
-from PyDSS.common import ControllerType
-from PyDSS.reports.pv_reports import CONTROL_MODE_SCENARIO
+from pydss.common import ControllerType
+from pydss.reports.pv_reports import CONTROL_MODE_SCENARIO
 
 from disco.distribution.deployment_parameters import DeploymentParameters
 from disco.enums import SimulationHierarchy, SimulationType

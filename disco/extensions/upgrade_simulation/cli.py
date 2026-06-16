@@ -3,7 +3,7 @@ import os
 
 from jade.jobs.job_configuration_factory import create_config_from_file
 from jade.utils.utils import load_data
-from PyDSS.controllers import PvControllerModel
+from pydss.controllers import PvControllerModel
 
 from disco.extensions.upgrade_simulation.upgrade_configuration import UpgradeConfiguration
 from disco.extensions.upgrade_simulation.upgrade_inputs import UpgradeInputs

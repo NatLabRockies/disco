@@ -14,7 +14,7 @@ from textwrap import indent
 import numpy as np
 
 # python internal imports
-from PyDSS.pydss_results import PyDssResults
+from pydss.pydss_results import PyDssResults
 from jade.common import CONFIG_FILE, JOBS_OUTPUT_DIR
 from jade.jobs.job_configuration_factory import create_config_from_file
 from jade.jobs.results_aggregator import ResultsAggregator

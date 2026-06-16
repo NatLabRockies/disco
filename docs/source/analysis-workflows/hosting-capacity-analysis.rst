@@ -49,7 +49,7 @@ Check the ``--help`` option for creating pipeline template.
                                     [default: False]
     -t, --template-file TEXT        Output pipeline template file  [default:
                                     pipeline-template.toml]
-    -r, --reports-filename TEXT     PyDSS report options. If None, use the
+    -r, --reports-filename TEXT     pydss report options. If None, use the
                                     default for the simulation type.
     -S, --enable-singularity        Add Singularity parameters and set the
                                     config to run in a container.  [default:
@@ -101,7 +101,7 @@ JADE:
 
 What does each stage do?
 
-* In the simulation stage DISCO runs a power flow simulation for each job through PyDSS and stores
+* In the simulation stage DISCO runs a power flow simulation for each job through pydss and stores
   per-job metrics.
 * In the post-process stage DISCO aggregates the metrics from each simulation job, calculates
   the hosting capacity, and then ingests results into a SQLite database.

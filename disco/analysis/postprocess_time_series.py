@@ -14,10 +14,10 @@ from jade.common import CONFIG_FILE
 from jade.jobs.results_aggregator import ResultsAggregator
 from disco.extensions.pydss_simulation.pydss_configuration import PyDssConfiguration
 from disco.distribution.deployment_parameters import DeploymentParameters
-from PyDSS.thermal_metrics import create_summary_from_dict
-from PyDSS.pydss_project import PyDssProject
-from PyDSS.pydss_results import PyDssResults
-from PyDSS.node_voltage_metrics import SimulationVoltageMetricsModel, VoltageMetricsModel
+from pydss.thermal_metrics import create_summary_from_dict
+from pydss.pydss_project import PyDssProject
+from pydss.pydss_results import PyDssResults
+from pydss.node_voltage_metrics import SimulationVoltageMetricsModel, VoltageMetricsModel
 
 
 logger = logging.getLogger(__name__)

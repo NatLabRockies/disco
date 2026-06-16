@@ -6,7 +6,7 @@ import pytest
 from jade.utils.subprocess_manager import run_command
 from jade.utils.utils import load_data, dump_data
 
-from PyDSS.common import SnapshotTimePointSelectionMode
+from pydss.common import SnapshotTimePointSelectionMode
 
 # Pre-defined filenames
 TEST_TEMPLATE_FILE = "pipeline-test-template.toml"

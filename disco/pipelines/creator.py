@@ -1,8 +1,8 @@
 import logging
 import os
 
-from PyDSS.common import SnapshotTimePointSelectionMode
-from PyDSS.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
+from pydss.common import SnapshotTimePointSelectionMode
+from pydss.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
 
 import disco
 from disco.enums import SimulationType, AnalysisType

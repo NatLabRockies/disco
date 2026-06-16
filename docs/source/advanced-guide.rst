@@ -8,7 +8,7 @@ Advanced Guide
 .. This page describes how to use the DISCO package to create, modify, and run
 .. simulations locally or on an HPC.
 
-.. DISCO create JADE extensions in DISCO, and calls high-level interfaces of PyDSS 
+.. DISCO create JADE extensions in DISCO, and calls high-level interfaces of pydss 
 .. to run simulations on top of OpenDSS.The supported simulations in DISCO currently 
 .. include:
 

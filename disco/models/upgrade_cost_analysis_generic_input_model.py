@@ -4,7 +4,7 @@ from pydantic.v1.error_wrappers import ValidationError
 
 import pandas as pd
 
-from PyDSS.controllers import PvControllerModel
+from pydss.controllers import PvControllerModel
 
 from disco.models.base import BaseAnalysisModel
 from disco.models.upgrade_cost_analysis_equipment_model import *

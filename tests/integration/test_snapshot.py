@@ -3,7 +3,7 @@
 import os
 import subprocess
 from pathlib import Path
-from PyDSS import thermal_metrics
+from pydss import thermal_metrics
 
 import pytest
 import toml
@@ -13,7 +13,7 @@ from jade.result import ResultsSummary
 from jade.utils.subprocess_manager import run_command
 from jade.utils.utils import dump_data, load_data
 
-from PyDSS.pydss_results import PyDssResults
+from pydss.pydss_results import PyDssResults
 
 import disco
 from disco.enums import SimulationType

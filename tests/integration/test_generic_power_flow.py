@@ -5,7 +5,7 @@ from pathlib import Path
 from jade.common import JOBS_OUTPUT_DIR
 from jade.utils.subprocess_manager import check_run_command
 from jade.utils.utils import load_data
-from PyDSS.pydss_results import PyDssResults
+from pydss.pydss_results import PyDssResults
 
 from tests.common import *
 

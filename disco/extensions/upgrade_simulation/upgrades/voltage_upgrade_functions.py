@@ -1536,7 +1536,7 @@ def perform_clustering(num_clusters, square_distance_array, buses_with_violation
     """
     clusters_dict = {}
     # model = AgglomerativeClustering(n_clusters=num_clusters, affinity='euclidean', linkage='ward')
-    model = AgglomerativeClustering(n_clusters=num_clusters, affinity='precomputed', linkage='average')
+    model = AgglomerativeClustering(n_clusters=num_clusters, metric='precomputed', linkage='average')
     model.fit(square_distance_array)
     labels_list = model.labels_
     # create a dictionary containing cluster_number as keys, and list of buses in that cluster as values

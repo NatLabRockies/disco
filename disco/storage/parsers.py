@@ -11,8 +11,8 @@ from dateutil.parser import parse
 
 from jade.utils.utils import load_data
 from opendssdirect._version import __version__ as __opendssdirect_version__
-from PyDSS import __version__ as __pydss_version__
-from PyDSS.common import SnapshotTimePointSelectionMode
+from pydss import __version__ as __pydss_version__
+from pydss.common import SnapshotTimePointSelectionMode
 from disco.pydss.common import SNAPSHOT_SCENARIO, TIME_SERIES_SCENARIOS, SCENARIO_NAME_DELIMITER
 from disco.storage.outputs import get_simulation_output, get_creation_time, OutputType
 from disco.version import __version__ as __disco_version__

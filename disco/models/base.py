@@ -9,8 +9,8 @@ from pydantic.v1 import validator, root_validator, Field, BaseModel
 from pydantic.v1.types import DirectoryPath, FilePath
 
 from jade.utils.utils import ExtendedJSONEncoder, standardize_timestamp
-from PyDSS.common import ControllerType
-from PyDSS.registry import Registry
+from pydss.common import ControllerType
+from pydss.registry import Registry
 
 from disco.enums import SimulationType
 from disco.models.utils import SchemaDict

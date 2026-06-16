@@ -2,7 +2,7 @@
 
 import json
 
-from PyDSS.pydss_project import PyDssProject
+from pydss.pydss_project import PyDssProject
 
 
 def detect_convergence_problems(project_path):

@@ -30,10 +30,10 @@ https://nrel.github.io/jade/tutorial.html#debugging
 Note that if you need result status in structured form, such as if you want to
 find all failed jobs, refer to ``<output-dir>/results.json``.
 
-Using PyDSS
+Using pydss
 ===========
 
-DISCO creates a PyDSS project directory for each simulation job. The directory
+DISCO creates a pydss project directory for each simulation job. The directory
 will have the following contents:
 
 * ``project.zip``
@@ -94,7 +94,7 @@ further processing (or pipe it to another command).
 
 Convergence errors
 ------------------
-PyDSS creates a report showing each instance of a convergence error for a PV
+pydss creates a report showing each instance of a convergence error for a PV
 controller.  An example name of this file is
 ``pydss_project__control_mode__reports.log``. This file contains line-delimited
 JSON objects.  This means that each line is valid JSON but the entire file is

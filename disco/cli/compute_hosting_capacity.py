@@ -3,7 +3,7 @@ import os
 import click
 
 from jade.utils.utils import load_data, dump_data
-from PyDSS.common import SnapshotTimePointSelectionMode
+from pydss.common import SnapshotTimePointSelectionMode
 import disco
 from disco.postprocess.hosting_capacity import compute_hc
 
