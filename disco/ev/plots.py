@@ -74,7 +74,7 @@ class EVHostingCapacityPlots:
 
     # ---- plots --------------------------------------------------------------
 
-    def density(self, ax=None, cmap="turbo", save=False, output_dir=None):
+    def density(self, ax=None, cmap="turbo_r", save=False, output_dir=None):
         """Interpolated EV hosting capacity heatmap (matches lindistflow style)."""
         df = self.bus.dropna(subset=[HC, "X", "Y"])
         x = df["X"].to_numpy()
@@ -130,7 +130,7 @@ class EVHostingCapacityPlots:
         for binding, color in palette.items():
             sub = df[df["Binding_constraint"] == binding]
             ax.scatter(sub["X"], sub["Y"], c=color, s=30,
-                    zorder=2, alpha=0.75, label=f"{binding} ({len(sub)})")
+                    zorder=2, alpha=0.75, label=f"{binding.capitalize()} ({len(sub)})")
         ax.legend(loc="best")
         ax.set_title("EV Hosting Capacity - Binding")
         ax.set_aspect("equal", adjustable="datalim")
@@ -141,7 +141,7 @@ class EVHostingCapacityPlots:
         return ax
 
 
-    def contour(self, ax=None, levels=12, cmap="turbo", save=False, output_dir=None):
+    def contour(self, ax=None, levels=12, cmap="turbo_r", save=False, output_dir=None):
         df, gx, gy, gz = self._grid()
         if ax is None:
             _, ax = plt.subplots(figsize=(6, 5))
@@ -154,7 +154,7 @@ class EVHostingCapacityPlots:
         save_path = self._resolve_save_path(save, output_dir, "ev_hc_contour.png")
         return self._finish(ax, cf, "EV Hosting Capacity - Contour", save_path)
 
-    def branch(self, ax=None, cmap="turbo", linewidth=3.0, save=False, output_dir=None):
+    def branch(self, ax=None, cmap="turbo_r", linewidth=3.0, save=False, output_dir=None):
         """Color each feeder line segment by the to-bus hosting capacity."""
         xy = self.bus.set_index("Bus")
         segments, values = [], []
@@ -178,7 +178,7 @@ class EVHostingCapacityPlots:
         save_path = self._resolve_save_path(save, output_dir, "ev_hc_branch.png")
         return self._finish(ax, lc, "EV Hosting Capacity - Branch", save_path)
 
-    def nodal(self, ax=None, cmap="turbo", size=42, save=False, output_dir=None):
+    def nodal(self, ax=None, cmap="turbo_r", size=42, save=False, output_dir=None):
         df = self.bus.dropna(subset=[HC, "X", "Y"])
         if ax is None:
             _, ax = plt.subplots(figsize=(6, 5))
