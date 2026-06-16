@@ -6,7 +6,7 @@
 *******************
 DISCO Documentation
 *******************
-DISCO (Distribution Integration Solution Cost Options) is an NREL-developed, 
+DISCO (Distribution Integration Solution Cost Options) is an NLR-developed, 
 python-based software tool for conducting scalable, repeatable distribution analyses. 
 While DISCO was originally developed to support photovoltaic (PV) impact analyses, 
 it can also be used to understand the impact of other distributed energy resources (DER) 

@@ -59,7 +59,7 @@ Follow these instructions if you will be developing DISCO code and running tests
 
 .. code-block:: bash
 
-    $ git clone https://github.com/NREL/disco.git
+    $ git clone https://github.com/NatLabRockies/disco.git
     $ cd disco
     $ pip install -e '.[dev]'
 

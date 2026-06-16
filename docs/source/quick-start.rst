@@ -40,7 +40,7 @@ A job config file named ``config.json`` was created.
 Parameters that you may want to configure:
 
 - By default, the pydss-exported circuit element properties are taken from
-  `snapshot-exports.toml <https://github.com/NREL/disco/blob/main/disco/pydss/config/snapshot-exports.toml>`_.
+  `snapshot-exports.toml <https://github.com/NatLabRockies/disco/blob/main/disco/pydss/config/snapshot-exports.toml>`_.
   Specify a different file with ``-e <your-file>``.
 - pydss will not automatically export results to CSV files by default.
   You can set ``export_data_tables`` to ``true`` in ``config.json``.

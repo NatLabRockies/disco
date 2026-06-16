@@ -98,7 +98,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     maintainer_email="daniel.thom@nrel.gov",
-    url="https://github.com/NREL/disco",
+    url="https://github.com/NatLabRockies/disco",
     packages=find_packages(),
     package_dir={"disco": "disco"},
     entry_points={

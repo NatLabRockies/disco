@@ -19,10 +19,10 @@ models (as it does for DC-AC ratio for PVSystems).
 
 Refer to these input JSON files as examples:
 
-- `Snapshot <https://github.com/NREL/disco/blob/main/tests/data/snapshot_generic.json>`_
-- `Time Series <https://github.com/NREL/disco/blob/main/tests/data/time_series_generic.json>`_
+- `Snapshot <https://github.com/NatLabRockies/disco/blob/main/tests/data/snapshot_generic.json>`_
+- `Time Series <https://github.com/NatLabRockies/disco/blob/main/tests/data/time_series_generic.json>`_
 
-This `test file <https://github.com/NREL/disco/blob/main/tests/integration/test_generic_power_flow.py>`_
+This `test file <https://github.com/NatLabRockies/disco/blob/main/tests/integration/test_generic_power_flow.py>`_
 demonstrates the workflow.
 
 .. note:: If you enable external controls for PVSystems through pydss then the file specified as
