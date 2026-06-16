@@ -1,7 +1,7 @@
 import enum
 import logging
 from typing import List, Optional, Set, Dict, Any
-from pydantic.v1 import Field
+from pydantic import Field
 
 from disco.models.upgrade_cost_analysis_equipment_model import UpgradeParamsBaseModel, ExtraLineParams, ExtraTransformerParams
 from disco.models.upgrade_cost_analysis_generic_input_model import OpenDSSLineModel, OpenDSSTransformerModel
@@ -306,11 +306,11 @@ class UpgradesCostResultSummaryModel(UpgradeParamsBaseModel):
         title="parameter1_name",
         description="Name of parameter1",
     )
-    parameter1_original: Any = Field(
+    parameter1_original: Any = Field(default=None, 
         title="parameter1_original",
         description="Original value of parameter1",
     )
-    parameter1_upgraded: Any = Field(
+    parameter1_upgraded: Any = Field(default=None, 
         title="parameter1_upgraded",
         description="Upgraded value of parameter1",
     )

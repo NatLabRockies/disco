@@ -60,7 +60,7 @@ with open(os.path.join(here, "disco", "version.py"), encoding="utf-8") as f:
 version = lines[0].split()[2].strip('"').strip("'")
 
 install_requires = [
-    "NREL-jade~=0.11.0",
+    "NREL-jade~=0.12.0",
     "chevron~=0.14.0",
     "click~=8.0",
     "NREL-PyDSS~=3.1.8",  # 3.0.4 has a breaking change

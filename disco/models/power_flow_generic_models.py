@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from pydantic.v1 import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 from jade.utils.utils import load_data
 
@@ -30,15 +30,15 @@ class PowerFlowGenericModel(BaseAnalysisModel):
         description="Names of jobs that must finish before this job starts",
         default=set(),
     )
-    estimated_run_minutes: Optional[int] = Field(
+    estimated_run_minutes: Optional[int] = Field(default=None, 
         title="estimated_run_minutes",
         description="Optionally advises the job execution manager on how long the job will run",
     )
-    substation: Optional[str] = Field(
+    substation: Optional[str] = Field(default=None, 
         title="substation",
         description="Substation for the job",
     )
-    feeder: Optional[str] = Field(
+    feeder: Optional[str] = Field(default=None, 
         title="feeder",
         description="Feeder for the job",
     )
@@ -57,13 +57,13 @@ class PowerFlowGenericModel(BaseAnalysisModel):
 class PowerFlowSimulationBaseModel(BaseModel):
     """Base model for power-flow simulations."""
 
-    class Config:
-        title = "PowerFlowSimulationBaseModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
-        validate_all = True
-        extra = "forbid"
-        use_enum_values = False
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+        use_enum_values=False,
+        protected_namespaces=(),
+    )
 
     jobs: List[PowerFlowGenericModel] = Field(
         title="jobs",
@@ -80,7 +80,8 @@ class PowerFlowSimulationBaseModel(BaseModel):
         default=True,
     )
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def check_job_names(cls, values):
         names = set()
         for job in values["jobs"]:
@@ -89,25 +90,25 @@ class PowerFlowSimulationBaseModel(BaseModel):
             names.add(job["name"])
         return values
 
-    @root_validator(pre=False)
-    def check_pydss_controllers(cls, values):
-        if not values["jobs"]:
+    @model_validator(mode="after")
+    def check_pydss_controllers(self):
+        if not self.jobs:
             raise ValueError("no jobs are defined")
 
-        num_pydss_controllers = len(values["jobs"][0].pydss_controllers)
-        if len(values["jobs"]) > 1:
-            for job in values["jobs"][1:]:
+        num_pydss_controllers = len(self.jobs[0].pydss_controllers)
+        if len(self.jobs) > 1:
+            for job in self.jobs[1:]:
                 if len(job.pydss_controllers) != num_pydss_controllers:
                     raise ValueError("All jobs must have the same number of pydss_controllers.")
-        return values
+        return self
 
-    @root_validator(pre=False)
-    def check_scenarios(cls, values):
-        if not values["include_pf1"] and not values["include_control_mode"]:
+    @model_validator(mode="after")
+    def check_scenarios(self):
+        if not self.include_pf1 and not self.include_control_mode:
             raise ValueError(
                 "At least one of 'include_pf1' and 'include_control_mode' must be set."
             )
-        return values
+        return self
 
     @classmethod
     def from_file(cls, filename: Path):
@@ -131,7 +132,8 @@ class PowerFlowSnapshotSimulationModel(PowerFlowSimulationBaseModel):
         default="2020-04-15 14:00:00",
     )
 
-    @validator("model_type")
+    @field_validator("model_type")
+    @classmethod
     def check_model_type(cls, val):
         if val != "PowerFlowSnapshotSimulationModel":
             raise ValueError(
@@ -160,7 +162,8 @@ class PowerFlowTimeSeriesSimulationModel(PowerFlowSimulationBaseModel):
         default=900,
     )
 
-    @validator("model_type")
+    @field_validator("model_type")
+    @classmethod
     def check_model_type(cls, val):
         if val != "PowerFlowTimeSeriesSimulationModel":
             raise ValueError(

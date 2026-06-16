@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic.v1 import Field
+from pydantic import Field, ConfigDict
 
 from disco.models.base import (
     BaseAnalysisModel,
@@ -12,9 +12,7 @@ from disco.models.base import (
 
 class ParameterOverridesModel(DiscoBaseModel):
     # TODO: Add upgrade parameters
-    class Config:
-        title = "ParameterOverridesModel"
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
 
 class UpgradeCostAnalysisModel(BaseAnalysisModel):
@@ -34,7 +32,4 @@ class UpgradeCostAnalysisModel(BaseAnalysisModel):
         description="Override default upgrade parameters on job level",
     )
     
-    class Config:
-        title = "UpgradeCostAnalysisModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)

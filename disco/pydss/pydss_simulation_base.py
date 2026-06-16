@@ -131,10 +131,6 @@ class PyDssSimulationBase(JobExecutionInterface, abc.ABC):
             deployment_filename = self._get_deployment_input_filename()
 
         dss_args = {
-            "plots": {
-                "create_dynamic_plots": False,
-                "open_plots_in_browser": False,
-            },
             "project": {
                 "project_path": os.path.abspath(self._run_dir),
                 "dss_file": deployment_filename,

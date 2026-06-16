@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any
 from pathlib import Path
 from typing import Optional, List
-from pydantic.v1 import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from jade.utils.utils import load_data
 
@@ -13,14 +13,16 @@ logger = logging.getLogger(__name__)
 class UpgradeParamsBaseModel(BaseModel):
     """Base model for all upgrade cost analysis parameters"""
 
-    class Config:
-        title = "UpgradeParamsBaseModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
-        validate_all = True
-        extra = "forbid"
-        use_enum_values = False
-        arbitrary_types_allowed = True
+    # Pydantic v1 coerced numbers (including NaN read from DataFrames) to str for str fields;
+    # preserve that behavior since model instances are built from pandas records.
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra="forbid",
+        use_enum_values=False,
+        arbitrary_types_allowed=True,
+        coerce_numbers_to_str=True,
+    )
 
     @classmethod
     def from_file(cls, filename: Path):
@@ -37,37 +39,37 @@ class UpgradeParamsBaseModel(BaseModel):
 class CommonLineParameters(UpgradeParamsBaseModel):
     """This model contains common line parameters that are used in linecode technical catalog, line technical catalog, line output upgrades. 
     All these fields are directly available from opendss"""
-    r1: Any = Field(
+    r1: Any = Field(default=None, 
         title="r1",
         description="r1",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    x1: Any = Field(
+    x1: Any = Field(default=None, 
         title="x1",
         description="x1",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    r0: Any = Field(
+    r0: Any = Field(default=None, 
         title="r0",
         description="r0",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    x0: Any = Field(
+    x0: Any = Field(default=None, 
         title="x0",
         description="x0",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    C1: Any = Field(
+    C1: Any = Field(default=None, 
         title="c1",
         description="c1",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    C0: Any = Field(
+    C0: Any = Field(default=None, 
         title="c0",
         description="c0",
         determine_upgrade_option=True,
@@ -108,12 +110,12 @@ class CommonLineParameters(UpgradeParamsBaseModel):
         description="rho",
         matrix_impedance_property=True,
     )
-    B1: Any = Field(
+    B1: Any = Field(default=None, 
         title="B1",
         description="B1",
         determine_upgrade_option=True,
     )
-    B0: Any = Field(
+    B0: Any = Field(default=None, 
         title="B0",
         description="B0",
         determine_upgrade_option=True,
@@ -133,23 +135,23 @@ class CommonLineParameters(UpgradeParamsBaseModel):
         description="units",
         determine_upgrade_option=True,
     )   
-    faultrate: Optional[float] = Field(
+    faultrate: Optional[float] = Field(default=None, 
         title="faultrate",
         description="faultrate",
     )
-    pctperm: Optional[float] = Field(
+    pctperm: Optional[float] = Field(default=None, 
         title="pctperm",
         description="pctperm",
     )
-    repair: Optional[float] = Field(
+    repair: Optional[float] = Field(default=None, 
         title="repair",
         description="repair",
     ) 
-    Seasons: Optional[Any] = Field(
+    Seasons: Optional[Any] = Field(default=None, 
         title="Seasons",
         description="Seasons",
     )
-    Ratings: Optional[Any] = Field(
+    Ratings: Optional[Any] = Field(default=None, 
         title="Ratings",
         description="Ratings",
     ) 
@@ -157,12 +159,12 @@ class CommonLineParameters(UpgradeParamsBaseModel):
 
 class OpenDSSLineParams(CommonLineParameters):
 
-    geometry: Any = Field(
+    geometry: Any = Field(default=None, 
         title="geometry",
         description="geometry",
         determine_upgrade_option=True,
     )
-    linecode: Any = Field(
+    linecode: Any = Field(default=None, 
         title="linecode",
         description="If line is defined using linecode, then name of associated line code should be provided here.",
         determine_upgrade_option=True,
@@ -173,23 +175,23 @@ class OpenDSSLineParams(CommonLineParameters):
         determine_upgrade_option=True,
         deciding_property=True,
     )  
-    EarthModel: Any = Field(
+    EarthModel: Any = Field(default=None, 
         title="EarthModel",
         description="EarthModel",
     )
-    cncables: Any = Field(
+    cncables: Any = Field(default=None, 
         title="cncables",
         description="cncables",
     )    
-    tscables: Any = Field(
+    tscables: Any = Field(default=None, 
         title="tscables",
         description="tscables",
     )   
-    wires: Any = Field(
+    wires: Any = Field(default=None, 
         title="wires",
         description="wires",
     )
-    like: Any = Field(
+    like: Any = Field(default=None, 
         title="like",
         description="like",
     )
@@ -205,13 +207,14 @@ class OpenDSSLineParams(CommonLineParameters):
         determine_upgrade_option=True,
         deciding_property=True,
     )
-    spacing: Any = Field(
+    spacing: Any = Field(default=None, 
         title="spacing",
         description="spacing",
         determine_upgrade_option=True,
     )
     
-    @validator("Switch")
+    @field_validator("Switch")
+    @classmethod
     def check_switch_property(cls, Switch):
         if Switch not in ("Yes", "No"):
             raise ValueError("Incorrect Switch type.")
@@ -243,13 +246,15 @@ class ExtraLineParams(BaseModel):
         deciding_property=True,
     )
     
-    @validator("line_definition_type")
+    @field_validator("line_definition_type")
+    @classmethod
     def check_line_definition_type(cls, line_definition_type):
         if line_definition_type not in ("linecode", "geometry", "line_definition"):
             raise ValueError(f"Incorrect Line definition type: {line_definition_type}. Acceptable values: linecode, geometry or line_definition.")
         return line_definition_type
     
-    @validator("line_placement")
+    @field_validator("line_placement")
+    @classmethod
     def check_line_placement(cls, line_placement):
         if line_placement not in ("underground", "overhead"):
             raise ValueError(f"Incorrect Line placement type: {line_placement}. Acceptable values: overhead, underground.")
@@ -355,7 +360,7 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         description="Xscarray",
         determine_upgrade_option=True,
     )
-    thermal: Any = Field(
+    thermal: Any = Field(default=None, 
         title="thermal",
         description="thermal",
         determine_upgrade_option=True,
@@ -432,7 +437,7 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         determine_upgrade_option=True,
         write_property=True,
     )
-    subname: Any = Field(
+    subname: Any = Field(default=None, 
         title="subname",
         description="subname",
         determine_upgrade_option=True,
@@ -456,17 +461,17 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         alias="%Rs",
         determine_upgrade_option=True,
     ) 
-    bank: Any = Field(
+    bank: Any = Field(default=None, 
         title="bank",
         description="bank",
         determine_upgrade_option=True,
     )
-    XfmrCode: Any = Field(
+    XfmrCode: Any = Field(default=None, 
         title="XfmrCode",
         description="XfmrCode",
         determine_upgrade_option=True,
     )
-    XRConst: Any = Field(
+    XRConst: Any = Field(default=None, 
         title="XRConst",
         description="XRConst",
         determine_upgrade_option=True,
@@ -487,14 +492,14 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         description="X23",
         determine_upgrade_option=True,
     ) 
-    LeadLag: Any = Field(
+    LeadLag: Any = Field(default=None, 
         title="LeadLag",
         description="LeadLag",
         determine_upgrade_option=True,
         deciding_property=True,
         write_property=True,
     )
-    Core: Any = Field(
+    Core: Any = Field(default=None, 
         title="Core",
         description="Core",
         determine_upgrade_option=True,
@@ -532,15 +537,15 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         determine_upgrade_option=True,
         deciding_property=True,
     )  
-    repair: Optional[float] = Field(
+    repair: Optional[float] = Field(default=None, 
         title="repair",
         description="repair",
     )
-    Seasons: Optional[Any] = Field(
+    Seasons: Optional[Any] = Field(default=None, 
         title="Seasons",
         description="Seasons",
     )
-    Ratings: Optional[Any] = Field(
+    Ratings: Optional[Any] = Field(default=None, 
         title="Ratings",
         description="Ratings",
     )
