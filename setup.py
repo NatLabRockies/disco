@@ -63,7 +63,7 @@ install_requires = [
     "NREL-jade~=0.12.0",
     "chevron~=0.14.0",
     "click~=8.0",
-    "NREL-PyDSS~=3.1.8",  # 3.0.4 has a breaking change
+    "NREL-PyDSS~=3.1.10",
     "filelock~=3.8",
     "matplotlib~=3.6",
     "networkx",
