@@ -59,6 +59,10 @@ class InvalidOpenDssElementError(DiscoBaseException):
     """Raise when an OpenDSS element has unexpected properties"""
 
 
+class NetworkConnectivityError(DiscoBaseException):
+    """Raise when the feeder network graph has disconnected components."""
+
+
 EXCEPTIONS_TO_ERROR_CODES = {
     
     AnalysisConfigurationException: {
@@ -123,6 +127,11 @@ EXCEPTIONS_TO_ERROR_CODES = {
         "corrective_action": "This could happen in cases when lines or transformers are extremely overloaded. Check and "
         "modify OpenDSS model for such instances.",
         "error_code": 125,
+    },
+    NetworkConnectivityError: {
+        "description": "The feeder network graph has disconnected components.",
+        "corrective_action": "Check the OpenDSS model for isolated buses or missing line/transformer definitions.",
+        "error_code": 126,
     },
 }
 

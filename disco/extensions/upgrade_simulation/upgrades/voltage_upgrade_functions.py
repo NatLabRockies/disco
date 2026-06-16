@@ -11,6 +11,7 @@ from sklearn.cluster import AgglomerativeClustering
 from .common_functions import *
 from .thermal_upgrade_functions import define_xfmr_object
 from disco import timer_stats_collector
+from disco.exceptions import NetworkConnectivityError
 from disco.models.upgrade_cost_analysis_generic_output_model import VoltageUpgradesTechnicalResultModel
 from opendssdirect import DSSException
 from jade.utils.timing_utils import track_timing, Timer
@@ -1521,6 +1522,17 @@ def get_upper_triangular_dist(G, buses_with_violations):
 
     """
     new_graph = G.to_undirected()
+    # Filter to buses reachable within the largest connected component; isolated nodes
+    # (e.g. auxiliary stub buses) cannot be reached by Dijkstra and would raise NetworkXNoPath.
+    if not nx.is_connected(new_graph):
+        largest_cc = max(nx.connected_components(new_graph), key=len)
+        excluded = [b for b in buses_with_violations if b not in largest_cc]
+        if excluded:
+            logger.warning(
+                f"Excluded {len(excluded)} violation bus(es) unreachable in feeder graph "
+                f"(not in main connected component): {excluded}"
+            )
+        buses_with_violations = [b for b in buses_with_violations if b in largest_cc]
     calculated_buses = []
     upper_triang_paths_dict = {}
     # Get upper triangular distance matrix - reduces computational time by half
@@ -1658,6 +1670,10 @@ def determine_new_regulator_location(circuit_source, initial_buses_with_violatio
     # prepare for clustering
     G = generate_networkx_representation()
     upper_triang_paths_dict = get_upper_triangular_dist(G=G, buses_with_violations=initial_buses_with_violations)
+    if not upper_triang_paths_dict:
+        logger.warning("No reachable violation buses remain after filtering disconnected nodes; "
+                       "skipping new regulator placement.")
+        return {}
     square_distance_df = get_full_distance_df(upper_triang_paths_dict=upper_triang_paths_dict)
     # if create_plots:
     #     fig_folder = kwargs.get('fig_folder', None)
@@ -1871,7 +1887,6 @@ def plot_thermal_violations(fig_folder, title, equipment_with_violations, circui
     # edges_list = G.edges()
     Un_G = G.to_undirected()
     fig = plt.figure(figsize=(40, 40), dpi=10)
-    # breakpoint()
     nx.draw_networkx_edges(Un_G, pos=position_dict, alpha=1.0, width=0.3)
     nx.draw_networkx_nodes(Un_G, pos=position_dict, alpha=1.0,
                            node_size=default_node_size, node_color=default_node_color)
@@ -2067,6 +2082,23 @@ def generate_networkx_representation():
         # these new buscoords could be written out to a file after correction
         G, commands_list = correct_node_coordinates(G=G)  # corrects node coordinates
     return G
+
+
+def check_network_connectivity():
+    """Raise NetworkConnectivityError if the loaded circuit has disconnected components."""
+    G = generate_networkx_representation()
+    undirected = G.to_undirected()
+    if nx.is_connected(undirected):
+        logger.info("Network connectivity check passed: all buses are connected.")
+        return
+    components = sorted(nx.connected_components(undirected), key=len, reverse=True)
+    isolated_nodes = [node for cc in components[1:] for node in cc]
+    raise NetworkConnectivityError(
+        f"Feeder graph has {len(components)} connected components. "
+        f"Main component: {len(components[0])} buses. "
+        f"{len(isolated_nodes)} isolated bus(es) not in main component "
+        f"(likely a model defect): {isolated_nodes}"
+    )
 
 
 def check_buscoordinates_completeness(bus_coordinates_df, verbose=False):

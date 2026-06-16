@@ -7,7 +7,7 @@ from jade.utils.timing_utils import track_timing, Timer
 from jade.utils.utils import load_data, dump_data
 
 from .thermal_upgrade_functions import *
-from .voltage_upgrade_functions import plot_thermal_violations, plot_voltage_violations, plot_feeder
+from .voltage_upgrade_functions import plot_thermal_violations, plot_voltage_violations, plot_feeder, check_network_connectivity
 
 from disco.models.upgrade_cost_analysis_generic_input_model import UpgradeTechnicalCatalogModel
 from disco.models.upgrade_cost_analysis_generic_output_model import UpgradeViolationResultModel, AllUpgradesTechnicalResultModel
@@ -47,6 +47,7 @@ def determine_thermal_upgrades(
     initial_dss_file_list = [master_path]
     simulation_params = reload_dss_circuit(dss_file_list=initial_dss_file_list,
                                            commands_list=None, **initial_simulation_params)
+    check_network_connectivity()
     timepoint_multipliers = thermal_config["timepoint_multipliers"]
 
     if timepoint_multipliers is not None:
@@ -177,7 +178,6 @@ def determine_thermal_upgrades(
         logger.info(f"Iteration_{iteration_counter}: Determined line loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of line violations: {len(overloaded_line_list)}")
         before_upgrade_num_line_violations = len(overloaded_line_list)
-        # breakpoint()
         if len(overloaded_line_list) > 0:
             line_commands_list, temp_line_upgrades_df = correct_line_violations(
                 line_loading_df=line_loading_df,
@@ -194,7 +194,6 @@ def determine_thermal_upgrades(
         logger.info(f"Iteration_{iteration_counter}: Determined xfmr loadings.")
         logger.info(f"Iteration_{iteration_counter}: Number of xfmr violations: {len(overloaded_xfmr_list)}")
         before_upgrade_num_xfmr_violations = len(overloaded_xfmr_list)
-        # breakpoint()
 
         if len(overloaded_xfmr_list) > 0:
             xfmr_commands_list, temp_xfmr_upgrades_df = correct_xfmr_violations(
@@ -264,7 +263,6 @@ def determine_thermal_upgrades(
     n = len(overloaded_xfmr_list) + len(overloaded_line_list)
     equipment_with_violations = {"Transformer": xfmr_loading_df, "Line": line_loading_df}
     if (upgrade_status == "Thermal Upgrades Required") and create_plots:
-        breakpoint()
         plot_thermal_violations(fig_folder=thermal_upgrades_directory, title="Thermal violations after thermal upgrades_" + str(n),
                                 equipment_with_violations=equipment_with_violations, circuit_source=circuit_source)
         plot_voltage_violations(fig_folder=thermal_upgrades_directory, title="Bus violations after thermal upgrades_" + str(len(buses_with_violations)),

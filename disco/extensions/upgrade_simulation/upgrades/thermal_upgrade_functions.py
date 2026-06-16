@@ -52,7 +52,6 @@ def correct_line_violations(line_loading_df, line_design_pu, line_upgrade_option
         # iterate over each overloaded line to find a solution
         for index, row in overloaded_loading_df.iterrows():
             logger.debug(row["name"])
-            # breakpoint()
             try:
                 options = line_upgrade_options.loc[index]
             except KeyError:
@@ -167,15 +166,13 @@ def identify_parallel_lines(options, object_row, parallel_lines_limit, **kwargs)
     options["num_parallel_raw"] = (object_row["required_design_amp"] - object_row["normamps"]) / options["normamps"]
     options["num_parallel"] = options["num_parallel_raw"].apply(np.ceil)
     options["choose_parallel_metric"] = options["num_parallel"] - options["num_parallel_raw"]
-    # TODO SHERIN check - choose num_parallel based on combination of choose_parallel_metric and num_parallel_lines
-    # breakpoint()
+    # TODO check - choose num_parallel based on combination of choose_parallel_metric and num_parallel_lines
     # choose option that has the least value of this metric- since that represents the per unit oversizing
     # chosen_option = pd.DataFrame(options.loc[options["choose_parallel_metric"].idxmin()]).T
     chosen_option = pd.DataFrame(options.loc[options["num_parallel"].idxmin()]).T
     chosen_option = chosen_option.sort_values("normamps")
     chosen_option = chosen_option.iloc[0]  # choose lowest available option
     num_parallel_lines = int(chosen_option["num_parallel"])
-    # breakpoint()
 
     if num_parallel_lines > parallel_lines_limit:
         raise ExceededParallelLinesLimit(f"Number of parallel lines required is {num_parallel_lines}, which exceeds limit of {parallel_lines_limit}."
@@ -481,7 +478,6 @@ def identify_parallel_xfmrs(upgrade_options, object_row, parallel_transformers_l
     upgrade_options["num_parallel"] = upgrade_options["num_parallel_raw"].apply(np.ceil)
     upgrade_options["choose_parallel_metric"] = upgrade_options["num_parallel"] - upgrade_options["num_parallel_raw"]
     n = upgrade_options['num_parallel'].min()
-    # breakpoint()
     upgrade_options = upgrade_options.loc[upgrade_options["num_parallel"] <= parallel_transformers_limit]
     if len(upgrade_options) == 0:
         raise ExceededParallelTransformersLimit(f"Number of parallel transformers required is {int(n)}, which exceeds limit of {parallel_transformers_limit}."
