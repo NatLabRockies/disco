@@ -72,7 +72,7 @@ install_requires = [
     "pandas >= 2, < 4",
     "pydantic >= 2, < 3",
     "seaborn~=0.12.1",
-    "scikit-learn",  # 1.4 removes the parameter affinity from AgglomerativeClustering
+    "scikit-learn>=1.5.0",
     "sqlalchemy~=1.4",
     "toml~=0.10.0",
 ]
