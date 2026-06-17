@@ -306,11 +306,13 @@ class UpgradesCostResultSummaryModel(UpgradeParamsBaseModel):
         title="parameter1_name",
         description="Name of parameter1",
     )
-    parameter1_original: Any = Field(default=None, 
+    parameter1_original: Any = Field(
+        default=None,
         title="parameter1_original",
         description="Original value of parameter1",
     )
-    parameter1_upgraded: Any = Field(default=None, 
+    parameter1_upgraded: Any = Field(
+        default=None,
         title="parameter1_upgraded",
         description="Upgraded value of parameter1",
     )

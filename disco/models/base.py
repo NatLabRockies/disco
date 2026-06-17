@@ -27,7 +27,9 @@ registered_pydss_controllers = defaultdict(set)
 class DiscoBaseModel(BaseModel):
     """Base input model for DISCO types."""
 
-    model_config = ConfigDict(protected_namespaces=())
+    # Pydantic v1 coerced numbers to str for str fields by default (e.g. a numeric feeder
+    # or substation name from a config); preserve that leniency under v2.
+    model_config = ConfigDict(protected_namespaces=(), coerce_numbers_to_str=True)
 
     @classmethod
     def schema_json(
@@ -281,7 +283,8 @@ class BaseAnalysisModel(DiscoBaseModel):
         max_length=255,
         example_value="J1_123_Sim_456",
     )
-    model_type: Optional[str] = Field(default=None, 
+    model_type: Optional[str] = Field(
+        default=None,
         title="model_type",
         description="model type.",
         max_length=255
@@ -302,7 +305,8 @@ class BaseAnalysisModel(DiscoBaseModel):
 class ImpactAnalysisBaseModel(BaseAnalysisModel, abc.ABC):
     """A base model for impact analysis types."""
 
-    base_case: Optional[str] = Field(default=None, 
+    base_case: Optional[str] = Field(
+        default=None,
         title="base_case",
         description="The base simulation job which has no added PV.",
         max_length=255,

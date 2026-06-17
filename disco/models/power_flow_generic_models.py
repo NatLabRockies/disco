@@ -30,15 +30,18 @@ class PowerFlowGenericModel(BaseAnalysisModel):
         description="Names of jobs that must finish before this job starts",
         default=set(),
     )
-    estimated_run_minutes: Optional[int] = Field(default=None, 
+    estimated_run_minutes: Optional[int] = Field(
+        default=None,
         title="estimated_run_minutes",
         description="Optionally advises the job execution manager on how long the job will run",
     )
-    substation: Optional[str] = Field(default=None, 
+    substation: Optional[str] = Field(
+        default=None,
         title="substation",
         description="Substation for the job",
     )
-    feeder: Optional[str] = Field(default=None, 
+    feeder: Optional[str] = Field(
+        default=None,
         title="feeder",
         description="Feeder for the job",
     )
@@ -83,6 +86,10 @@ class PowerFlowSimulationBaseModel(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def check_job_names(cls, values):
+        # Runs before field validation; let normal validation report a missing/invalid
+        # "jobs" with a clean error rather than raising a raw KeyError/TypeError here.
+        if not isinstance(values, dict) or "jobs" not in values:
+            return values
         names = set()
         for job in values["jobs"]:
             if job["name"] in names:

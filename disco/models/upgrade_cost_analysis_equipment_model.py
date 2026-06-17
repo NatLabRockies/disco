@@ -39,37 +39,43 @@ class UpgradeParamsBaseModel(BaseModel):
 class CommonLineParameters(UpgradeParamsBaseModel):
     """This model contains common line parameters that are used in linecode technical catalog, line technical catalog, line output upgrades. 
     All these fields are directly available from opendss"""
-    r1: Any = Field(default=None, 
+    r1: Any = Field(
+        default=None,
         title="r1",
         description="r1",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    x1: Any = Field(default=None, 
+    x1: Any = Field(
+        default=None,
         title="x1",
         description="x1",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    r0: Any = Field(default=None, 
+    r0: Any = Field(
+        default=None,
         title="r0",
         description="r0",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    x0: Any = Field(default=None, 
+    x0: Any = Field(
+        default=None,
         title="x0",
         description="x0",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    C1: Any = Field(default=None, 
+    C1: Any = Field(
+        default=None,
         title="c1",
         description="c1",
         determine_upgrade_option=True,
         symmetrical_impedance_property=True,
     )
-    C0: Any = Field(default=None, 
+    C0: Any = Field(
+        default=None,
         title="c0",
         description="c0",
         determine_upgrade_option=True,
@@ -110,12 +116,14 @@ class CommonLineParameters(UpgradeParamsBaseModel):
         description="rho",
         matrix_impedance_property=True,
     )
-    B1: Any = Field(default=None, 
+    B1: Any = Field(
+        default=None,
         title="B1",
         description="B1",
         determine_upgrade_option=True,
     )
-    B0: Any = Field(default=None, 
+    B0: Any = Field(
+        default=None,
         title="B0",
         description="B0",
         determine_upgrade_option=True,
@@ -135,23 +143,28 @@ class CommonLineParameters(UpgradeParamsBaseModel):
         description="units",
         determine_upgrade_option=True,
     )   
-    faultrate: Optional[float] = Field(default=None, 
+    faultrate: Optional[float] = Field(
+        default=None,
         title="faultrate",
         description="faultrate",
     )
-    pctperm: Optional[float] = Field(default=None, 
+    pctperm: Optional[float] = Field(
+        default=None,
         title="pctperm",
         description="pctperm",
     )
-    repair: Optional[float] = Field(default=None, 
+    repair: Optional[float] = Field(
+        default=None,
         title="repair",
         description="repair",
     ) 
-    Seasons: Optional[Any] = Field(default=None, 
+    Seasons: Optional[Any] = Field(
+        default=None,
         title="Seasons",
         description="Seasons",
     )
-    Ratings: Optional[Any] = Field(default=None, 
+    Ratings: Optional[Any] = Field(
+        default=None,
         title="Ratings",
         description="Ratings",
     ) 
@@ -159,12 +172,14 @@ class CommonLineParameters(UpgradeParamsBaseModel):
 
 class OpenDSSLineParams(CommonLineParameters):
 
-    geometry: Any = Field(default=None, 
+    geometry: Any = Field(
+        default=None,
         title="geometry",
         description="geometry",
         determine_upgrade_option=True,
     )
-    linecode: Any = Field(default=None, 
+    linecode: Any = Field(
+        default=None,
         title="linecode",
         description="If line is defined using linecode, then name of associated line code should be provided here.",
         determine_upgrade_option=True,
@@ -175,23 +190,28 @@ class OpenDSSLineParams(CommonLineParameters):
         determine_upgrade_option=True,
         deciding_property=True,
     )  
-    EarthModel: Any = Field(default=None, 
+    EarthModel: Any = Field(
+        default=None,
         title="EarthModel",
         description="EarthModel",
     )
-    cncables: Any = Field(default=None, 
+    cncables: Any = Field(
+        default=None,
         title="cncables",
         description="cncables",
     )    
-    tscables: Any = Field(default=None, 
+    tscables: Any = Field(
+        default=None,
         title="tscables",
         description="tscables",
     )   
-    wires: Any = Field(default=None, 
+    wires: Any = Field(
+        default=None,
         title="wires",
         description="wires",
     )
-    like: Any = Field(default=None, 
+    like: Any = Field(
+        default=None,
         title="like",
         description="like",
     )
@@ -207,7 +227,8 @@ class OpenDSSLineParams(CommonLineParameters):
         determine_upgrade_option=True,
         deciding_property=True,
     )
-    spacing: Any = Field(default=None, 
+    spacing: Any = Field(
+        default=None,
         title="spacing",
         description="spacing",
         determine_upgrade_option=True,
@@ -360,7 +381,8 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         description="Xscarray",
         determine_upgrade_option=True,
     )
-    thermal: Any = Field(default=None, 
+    thermal: Any = Field(
+        default=None,
         title="thermal",
         description="thermal",
         determine_upgrade_option=True,
@@ -437,7 +459,8 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         determine_upgrade_option=True,
         write_property=True,
     )
-    subname: Any = Field(default=None, 
+    subname: Any = Field(
+        default=None,
         title="subname",
         description="subname",
         determine_upgrade_option=True,
@@ -461,17 +484,20 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         alias="%Rs",
         determine_upgrade_option=True,
     ) 
-    bank: Any = Field(default=None, 
+    bank: Any = Field(
+        default=None,
         title="bank",
         description="bank",
         determine_upgrade_option=True,
     )
-    XfmrCode: Any = Field(default=None, 
+    XfmrCode: Any = Field(
+        default=None,
         title="XfmrCode",
         description="XfmrCode",
         determine_upgrade_option=True,
     )
-    XRConst: Any = Field(default=None, 
+    XRConst: Any = Field(
+        default=None,
         title="XRConst",
         description="XRConst",
         determine_upgrade_option=True,
@@ -492,14 +518,16 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         description="X23",
         determine_upgrade_option=True,
     ) 
-    LeadLag: Any = Field(default=None, 
+    LeadLag: Any = Field(
+        default=None,
         title="LeadLag",
         description="LeadLag",
         determine_upgrade_option=True,
         deciding_property=True,
         write_property=True,
     )
-    Core: Any = Field(default=None, 
+    Core: Any = Field(
+        default=None,
         title="Core",
         description="Core",
         determine_upgrade_option=True,
@@ -537,15 +565,18 @@ class CommonTransformerParameters(UpgradeParamsBaseModel):
         determine_upgrade_option=True,
         deciding_property=True,
     )  
-    repair: Optional[float] = Field(default=None, 
+    repair: Optional[float] = Field(
+        default=None,
         title="repair",
         description="repair",
     )
-    Seasons: Optional[Any] = Field(default=None, 
+    Seasons: Optional[Any] = Field(
+        default=None,
         title="Seasons",
         description="Seasons",
     )
-    Ratings: Optional[Any] = Field(default=None, 
+    Ratings: Optional[Any] = Field(
+        default=None,
         title="Ratings",
         description="Ratings",
     )

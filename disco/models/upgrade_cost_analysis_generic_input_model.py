@@ -92,7 +92,8 @@ class OpenDSSLineModel(OpenDSSLineParams):
         title="length",
         description="length",
     )
-    enabled: Any = Field(default=None, 
+    enabled: Any = Field(
+        default=None,
         title="enabled",
         description="enabled",
     )
@@ -208,7 +209,8 @@ class LineGeometryCatalogModel(UpgradeParamsBaseModel):
         description="reduce",
         determine_upgrade_option=True,
     )
-    spacing: Optional[Any] = Field(default=None, 
+    spacing: Optional[Any] = Field(
+        default=None,
         title="spacing",
         description="spacing",
     )
@@ -241,7 +243,8 @@ class LineGeometryCatalogModel(UpgradeParamsBaseModel):
         title="Seasons",
         description="Seasons",
     )
-    Ratings: Any = Field(default=None, 
+    Ratings: Any = Field(
+        default=None,
         title="Ratings",
         description="Ratings",
     )
@@ -250,7 +253,8 @@ class LineGeometryCatalogModel(UpgradeParamsBaseModel):
         description="LineType",
         determine_upgrade_option=True,
     )
-    like: Any = Field(default=None, 
+    like: Any = Field(
+        default=None,
         title="like",
         description="like",
     )
@@ -266,11 +270,13 @@ class OpenDSSTransformerModel(CommonTransformerParameters):
         title="bus",
         description="bus",
     )
-    buses: Any = Field(default=None, 
+    buses: Any = Field(
+        default=None,
         title="buses",
         description="buses",
     )
-    enabled: Any = Field(default=None, 
+    enabled: Any = Field(
+        default=None,
         title="enabled",
         description="enabled",
     )
@@ -365,7 +371,8 @@ class ThermalUpgradeParamsModel(UpgradeParamsBaseModel):
     upgrade_iteration_threshold: Optional[int] = Field(
         title="upgrade_iteration_threshold", description="Upgrade iteration threshold", default=5
     )
-    timepoint_multipliers: Optional[Dict] = Field(default=None, 
+    timepoint_multipliers: Optional[Dict] = Field(
+        default=None,
         title="timepoint_multipliers",
         description='Dictionary to provide timepoint multipliers. example: timepoint_multipliers={"load_multipliers": {"with_pv": [1.2], "without_pv": [0.6]}}',
     )
@@ -373,6 +380,10 @@ class ThermalUpgradeParamsModel(UpgradeParamsBaseModel):
     @field_validator("voltage_lower_limit")
     @classmethod
     def check_voltage_lower_limits(cls, voltage_lower_limit, info):
+        # Skip the cross-check if the dependency failed its own validation; pydantic
+        # already reports that error and info.data would otherwise raise KeyError.
+        if "voltage_upper_limit" not in info.data:
+            return voltage_lower_limit
         upper = info.data["voltage_upper_limit"]
         if upper <= voltage_lower_limit:
             raise ValueError(
@@ -383,6 +394,8 @@ class ThermalUpgradeParamsModel(UpgradeParamsBaseModel):
     @field_validator("line_design_pu")
     @classmethod
     def check_line_design_pu(cls, line_design_pu, info):
+        if "line_upper_limit" not in info.data:
+            return line_design_pu
         upper = info.data["line_upper_limit"]
         if line_design_pu >= upper:
             raise ValueError(
@@ -393,6 +406,8 @@ class ThermalUpgradeParamsModel(UpgradeParamsBaseModel):
     @field_validator("transformer_design_pu")
     @classmethod
     def check_transformer_design_pu(cls, transformer_design_pu, info):
+        if "transformer_upper_limit" not in info.data:
+            return transformer_design_pu
         upper = info.data["transformer_upper_limit"]
         if transformer_design_pu >= upper:
             raise ValueError(
@@ -403,7 +418,7 @@ class ThermalUpgradeParamsModel(UpgradeParamsBaseModel):
     @field_validator("external_catalog")
     @classmethod
     def check_catalog(cls, external_catalog, info):
-        if info.data["read_external_catalog"]:
+        if info.data.get("read_external_catalog"):
             if not Path(external_catalog).exists():
                 raise ValueError(f"{external_catalog} does not exist")
             # Just verify that it constructs the model.
@@ -509,6 +524,8 @@ class VoltageUpgradeParamsModel(UpgradeParamsBaseModel):
     @field_validator("initial_lower_limit")
     @classmethod
     def check_initial_voltage_lower_limits(cls, initial_lower_limit, info):
+        if "initial_upper_limit" not in info.data:
+            return initial_lower_limit
         upper = info.data["initial_upper_limit"]
         if upper <= initial_lower_limit:
             raise ValueError(
@@ -519,6 +536,8 @@ class VoltageUpgradeParamsModel(UpgradeParamsBaseModel):
     @field_validator("final_lower_limit")
     @classmethod
     def check_final_voltage_lower_limits(cls, final_lower_limit, info):
+        if "final_upper_limit" not in info.data:
+            return final_lower_limit
         upper = info.data["final_upper_limit"]
         if upper <= final_lower_limit:
             raise ValueError(
@@ -561,7 +580,8 @@ class UpgradeCostAnalysisGenericModel(BaseAnalysisModel):
         description="Names of jobs that must finish before this job starts",
         default=set(),
     )
-    estimated_run_minutes: Optional[int] = Field(default=None, 
+    estimated_run_minutes: Optional[int] = Field(
+        default=None,
         title="estimated_run_minutes",
         description="Optionally advises the job execution manager on how long the job will run",
     )
@@ -577,7 +597,8 @@ class UpgradeCostAnalysisGenericModel(BaseAnalysisModel):
 class PyDssControllerModels(UpgradeParamsBaseModel):
     """Defines the settings for PyDSS controllers"""
 
-    pv_controller: Optional[PvControllerModel] = Field(default=None, 
+    pv_controller: Optional[PvControllerModel] = Field(
+        default=None,
         title="pv_controller", description="Settings for a PV controller"
     )
 
@@ -648,6 +669,10 @@ class UpgradeCostAnalysisSimulationModel(UpgradeParamsBaseModel):
     @model_validator(mode="before")
     @classmethod
     def check_job_names(cls, values):
+        # Runs before field validation; let normal validation report a missing/invalid
+        # "jobs" with a clean error rather than raising a raw KeyError/TypeError here.
+        if not isinstance(values, dict) or "jobs" not in values:
+            return values
         names = set()
         for job in values["jobs"]:
             if job["name"] in names:
@@ -779,7 +804,8 @@ class LineUnitCostModel(UpgradeParamsBaseModel):
         title="cost_units",
         description="Unit for cost. This should be in USD",
     )
-    name: Optional[str] = Field(default=None, 
+    name: Optional[str] = Field(
+        default=None,
         title="name",
         description="Line name. This is an optional parameter, and is not used.",
     )
