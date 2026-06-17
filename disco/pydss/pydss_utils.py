@@ -2,7 +2,7 @@
 
 import json
 
-from PyDSS.pydss_project import PyDssProject
+from pydss.pydss_project import PyDssProject
 
 
 def detect_convergence_problems(project_path):
@@ -23,7 +23,14 @@ def detect_convergence_problems(project_path):
     project_name = project.simulation_config.project.active_project
     for scenario in project.list_scenario_names():
         log_file = f"Logs/{project_name}__{scenario}__reports.log"
-        problems += _detect_convergence_problems(project.fs_interface.read_file(log_file))
+        try:
+            text = project.fs_interface.read_file(log_file)
+        except (KeyError, FileNotFoundError):
+            # Newer versions of PyDSS raise convergence errors during the simulation
+            # instead of writing them to a per-scenario reports log, so the file may
+            # not exist. Nothing to detect after the fact in that case.
+            continue
+        problems += _detect_convergence_problems(text)
 
     return problems
 

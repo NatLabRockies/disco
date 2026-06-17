@@ -5,8 +5,8 @@ import logging
 import os
 
 from jade.exceptions import InvalidParameter
-from PyDSS.common import ControllerType
-from PyDSS.registry import Registry
+from pydss.common import ControllerType
+from pydss.registry import Registry
 
 import disco
 from disco.distribution.distribution_configuration import DistributionConfiguration

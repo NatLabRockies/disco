@@ -28,7 +28,7 @@ Optional: Install extra packages.
 
     $ pip install NREL-disco
 
-**Known Windows installation problem**: DISCO requires PyDSS which requires the
+**Known Windows installation problem**: DISCO requires pydss which requires the
 Shapely package. In some cases Shapely will fail to install.
 pip will report an error about ``geos_c.dll``. Install it from conda and then
 retry.
@@ -59,7 +59,7 @@ Follow these instructions if you will be developing DISCO code and running tests
 
 .. code-block:: bash
 
-    $ git clone https://github.com/NREL/disco.git
+    $ git clone https://github.com/NatLabRockies/disco.git
     $ cd disco
     $ pip install -e '.[dev]'
 

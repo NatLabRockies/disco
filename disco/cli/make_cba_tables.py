@@ -19,7 +19,7 @@ from jade.jobs.results_aggregator import ResultsAggregator
 from jade.utils.subprocess_manager import check_run_command
 from jade.utils.utils import load_data
 
-from PyDSS.pydss_results import PyDssResults
+from pydss.pydss_results import PyDssResults
 
 from disco.pipelines.utils import ensure_jade_pipeline_output_dir
 

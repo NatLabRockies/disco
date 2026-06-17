@@ -1,8 +1,8 @@
 import logging
 import os
 
-from PyDSS.common import SnapshotTimePointSelectionMode
-from PyDSS.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
+from pydss.common import SnapshotTimePointSelectionMode
+from pydss.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
 
 import disco
 from disco.enums import SimulationType, AnalysisType
@@ -26,7 +26,7 @@ class SnapshotPipelineCreator(PipelineCreatorBase):
 
         config = PipelineConfig(stages=stages, stage_num=1)
         with open(config_file, "w") as f:
-            f.write(config.json(indent=2))
+            f.write(config.model_dump_json(indent=2))
         logger.info("Created pipeline config file - %s", config_file)
 
     def make_model_transform_command(self):
@@ -130,7 +130,7 @@ class TimeSeriesPipelineCreator(PipelineCreatorBase):
 
         config = PipelineConfig(stages=stages, stage_num=1)
         with open(config_file, "w") as f:
-            f.write(config.json(indent=2))
+            f.write(config.model_dump_json(indent=2))
         logger.info("Created pipeline config file - %s", config_file)
 
     def make_model_transform_command(self):
@@ -230,7 +230,7 @@ class UpgradePipelineCreator(PipelineCreatorBase):
         
         config = PipelineConfig(stages=stages, stage_num=1)
         with open(config_file, "w") as f:
-            f.write(config.json(indent=2))
+            f.write(config.model_dump_json(indent=2))
         logger.info("Created pipeline config file - %s", config_file)
     
     def make_model_transform_command(self):
@@ -272,7 +272,7 @@ class UpgradePipelineCreator(PipelineCreatorBase):
         
         config = PipelineConfig(stages=stages, stage_num=1)
         with open(config_file, "w") as f:
-            f.write(config.json(indent=2))
+            f.write(config.model_dump_json(indent=2))
         logger.info("Created pipeline config file - %s", config_file)
     
     def make_model_transform_command(self):

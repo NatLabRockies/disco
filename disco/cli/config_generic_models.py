@@ -6,7 +6,7 @@ import click
 from jade.loggers import setup_logging
 from jade.utils.utils import load_data
 
-from PyDSS.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
+from pydss.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
 
 from disco.cli.config_snapshot import (
     switch_snapshot_to_qsts,

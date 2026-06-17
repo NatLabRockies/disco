@@ -10,7 +10,7 @@ import pandas as pd
 from jade.exceptions import InvalidParameter, InvalidConfiguration
 from jade.jobs.job_analysis import JobAnalysis
 from jade.utils.utils import load_data
-from PyDSS.pydss_results import PyDssResults
+from pydss.pydss_results import PyDssResults
 from disco.sources.gem.make_element_bus_mapping import get_bus_to_element, \
     REGION_BUS_MAPPING_FILENAME
 

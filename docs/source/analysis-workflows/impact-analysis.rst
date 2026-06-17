@@ -25,7 +25,7 @@ Transform the source models into DISCO models with this command:
 Config Jobs
 -----------
 
-1. Copy this text into a file called ``exports.toml``. This will instruct PyDSS to store each of these
+1. Copy this text into a file called ``exports.toml``. This will instruct pydss to store each of these
    properties for each element at each time point.
 
 ::
@@ -179,9 +179,9 @@ some example code:
     capacitor_changes = scenario.read_capacitor_changes()
 
 
-Use the PyDSS Data Viewer
+Use the pydss Data Viewer
 -------------------------
-PyDSS includes a data viewer that makes it easy to plot circuit element values in a Jupyter
+pydss includes a data viewer that makes it easy to plot circuit element values in a Jupyter
 notebook. Refer to its `docs <https://nrel.github.io/PyDSS/tutorial.html#data-viewer>`_.
 
 

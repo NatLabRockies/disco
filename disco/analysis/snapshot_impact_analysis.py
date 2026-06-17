@@ -13,7 +13,7 @@ from jade.jobs.results_aggregator import ResultsAggregator
 from jade.utils.timing_utils import track_timing, TimerStatsCollector, Timer
 from jade.utils.utils import dump_data
 
-from PyDSS.pydss_results import PyDssResults, PyDssScenarioResults
+from pydss.pydss_results import PyDssResults, PyDssScenarioResults
 from disco.analysis import Analysis, Input
 from disco.exceptions import AnalysisRunException
 from disco.extensions.pydss_simulation.pydss_configuration import PyDssConfiguration

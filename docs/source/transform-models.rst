@@ -76,11 +76,11 @@ this flag to the command:
 DISCO Model in Depth
 ====================
 
-PyDSS Controllers
+pydss Controllers
 -----------------
 
 If you have custom *controllers* that need to be applied to simulation,
-please make the controllers are registered via PyDSS first.
+please make the controllers are registered via pydss first.
 
 Suppose we have particular controller settings defined in a ``my-custom-controllers.toml`` file:
 
@@ -106,7 +106,7 @@ config related to ``pydss_controllers``.
         "controller_type": "PvController"
     }
 
-By default, the target PyDSS file that the PyDSS controller would be applied to 
+By default, the target pydss file that the pydss controller would be applied to 
 is the deployment file, you do not need to specify the target DSS files. However,
 if you want to specify the target DSS files here, other than the deployment file,
 
@@ -121,7 +121,7 @@ if you want to specify the target DSS files here, other than the deployment file
         ]
     }
 
-And, ``pydss_controllers`` supports multiple PyDSS controllers here,
+And, ``pydss_controllers`` supports multiple pydss controllers here,
 
 .. code-block:: json
 

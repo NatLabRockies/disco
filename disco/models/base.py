@@ -3,17 +3,16 @@ import json
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union, Set
+from typing import List, Optional, Union, Set, get_args, get_origin
 
-from pydantic.v1 import validator, root_validator, Field, BaseModel
-from pydantic.v1.types import DirectoryPath, FilePath
+from pydantic import field_validator, model_validator, Field, BaseModel, ConfigDict
+from pydantic import DirectoryPath, FilePath
 
 from jade.utils.utils import ExtendedJSONEncoder, standardize_timestamp
-from PyDSS.common import ControllerType
-from PyDSS.registry import Registry
+from pydss.common import ControllerType
+from pydss.registry import Registry
 
 from disco.enums import SimulationType
-from disco.models.utils import SchemaDict
 from disco.pydss.pydss_configuration_base import DEFAULT_CONTROLLER_CONFIGS
 
 
@@ -28,6 +27,10 @@ registered_pydss_controllers = defaultdict(set)
 class DiscoBaseModel(BaseModel):
     """Base input model for DISCO types."""
 
+    # Pydantic v1 coerced numbers to str for str fields by default (e.g. a numeric feeder
+    # or substation name from a config); preserve that leniency under v2.
+    model_config = ConfigDict(protected_namespaces=(), coerce_numbers_to_str=True)
+
     @classmethod
     def schema_json(
         cls,
@@ -35,7 +38,7 @@ class DiscoBaseModel(BaseModel):
         by_alias: bool = True,
         indent: int = 2,
     ) -> str:
-        data = cls.schema(by_alias=by_alias)
+        data = cls.model_json_schema(by_alias=by_alias)
         return json.dumps(data, indent=indent, cls=ExtendedJSONEncoder)
 
     @classmethod
@@ -45,26 +48,37 @@ class DiscoBaseModel(BaseModel):
     ) -> dict:
         """Create an data example for an inputs model"""
         data = {}
-        schema_dict = SchemaDict(super().schema())
-        for field in cls.__fields__.values():
-            if field.name == "model_type":
+        for name, field in cls.model_fields.items():
+            if name == "model_type":
                 field_value = cls.__name__
+            elif field.is_required():
+                field_value = None
             else:
-                field_value = field.get_default()
+                field_value = field.get_default(call_default_factory=True)
 
+            extra = field.json_schema_extra or {}
             if field_value is None:
-                field_value = field.field_info.extra.get("example_value", None)
+                field_value = extra.get("example_value", None)
 
             is_enum = False
             if isinstance(field_value, Enum):
                 field_value = field_value.value
                 is_enum = True
 
-            definition = getattr(field.type_, "__name__", None)
-            if definition and (definition in schema_dict.definitions) and (not is_enum):
-                field_value = field.type_.example(False)
+            # Unwrap Optional[...]/Union[..., None] to find a nested model type.
+            annotation = field.annotation
+            if get_origin(annotation) is Union:
+                args = [a for a in get_args(annotation) if a is not type(None)]
+                if len(args) == 1:
+                    annotation = args[0]
+            if (
+                not is_enum
+                and isinstance(annotation, type)
+                and issubclass(annotation, DiscoBaseModel)
+            ):
+                field_value = annotation.example(False)
 
-            data[field.alias] = field_value
+            data[field.alias or name] = field_value
 
         if in_list:
             data = [data]
@@ -74,7 +88,7 @@ class DiscoBaseModel(BaseModel):
     @classmethod
     def example_json(cls, indent: int = 2) -> str:
         """Create a JSON example for an inputs model."""
-        return json.dumps(cls.example(), indent=indent)
+        return json.dumps(cls.example(), indent=indent, cls=ExtendedJSONEncoder)
 
 
 class PyDSSControllerModel(DiscoBaseModel):
@@ -98,13 +112,15 @@ class PyDSSControllerModel(DiscoBaseModel):
         description="The PV system files that need to apply controller."
     )
 
-    class Config:
-        title = "PyDSSControllerModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def validate_pydss_controller_registration(cls, values: dict) -> dict:
+        # This model appears in a Union; pydantic v2 may try this branch with a non-dict
+        # (e.g. a list) input. Let normal validation reject it and fall through to the list.
+        if not isinstance(values, dict):
+            return values
         controller_type = ControllerType(values["controller_type"])
         name = values["name"]
 
@@ -183,16 +199,13 @@ class OpenDssDeploymentModel(DiscoBaseModel):
             "the stack for use in analysis/post-processing scripts."
         )
     )
-    pydss_controllers: Union[PyDSSControllerModel, List[PyDSSControllerModel]] = Field(
+    pydss_controllers: Optional[Union[PyDSSControllerModel, List[PyDSSControllerModel]]] = Field(
         title="pydss_controllers",
         default=None,
         description="One or multiple controllers"
     )
 
-    class Config:
-        title = "OpenDssDeploymentModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)
 
 
 class SimulationModel(DiscoBaseModel):
@@ -220,25 +233,26 @@ class SimulationModel(DiscoBaseModel):
         description="The simulation type supported in DISCO."
     )
 
-    class Config:
-        title = "SimulationModel"
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
-    @validator("start_time", pre=True)
+    @field_validator("start_time", mode="before")
+    @classmethod
     def validate_start_time(cls, value: Union[str, datetime]) -> str:
         try:
             return standardize_timestamp(value)
         except ValueError:
             raise
 
-    @validator("end_time", pre=True)
+    @field_validator("end_time", mode="before")
+    @classmethod
     def validate_end_time(cls, value: Union[str, datetime]) -> str:
         try:
             return standardize_timestamp(value)
         except ValueError:
             raise
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def check_start_end_time(cls, values):
         """Validate start/end time for Snapshot simulation."""
         simulation_type = SimulationType(values.get("simulation_type"))
@@ -270,6 +284,7 @@ class BaseAnalysisModel(DiscoBaseModel):
         example_value="J1_123_Sim_456",
     )
     model_type: Optional[str] = Field(
+        default=None,
         title="model_type",
         description="model type.",
         max_length=255
@@ -291,6 +306,7 @@ class ImpactAnalysisBaseModel(BaseAnalysisModel, abc.ABC):
     """A base model for impact analysis types."""
 
     base_case: Optional[str] = Field(
+        default=None,
         title="base_case",
         description="The base simulation job which has no added PV.",
         max_length=255,
@@ -309,7 +325,4 @@ class ImpactAnalysisBaseModel(BaseAnalysisModel, abc.ABC):
         description="Simulation parameters with PV deployment",
     )
 
-    class Config:
-        title = "ImpactAnalysisBaseModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)

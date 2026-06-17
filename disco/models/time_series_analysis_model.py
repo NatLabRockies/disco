@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from pydantic.v1 import Field
+from pydantic import Field, ConfigDict
 
 from .base import ImpactAnalysisBaseModel
 
@@ -51,7 +51,4 @@ class TimeSeriesAnalysisModel(ImpactAnalysisBaseModel):
     #    description="Granularity of data to collect",
     #)
 
-    class Config:
-        title = "TimeSeriesAnalysisModel"
-        anystr_strip_whitespace = True
-        validate_assignment = True
+    model_config = ConfigDict(str_strip_whitespace=True, validate_assignment=True)

@@ -60,19 +60,19 @@ with open(os.path.join(here, "disco", "version.py"), encoding="utf-8") as f:
 version = lines[0].split()[2].strip('"').strip("'")
 
 install_requires = [
-    "NREL-jade~=0.10.0",
+    "NREL-jade~=0.12.0",
     "chevron~=0.14.0",
     "click~=8.0",
-    "dsspy==3.0.2",  # 3.0.4 has a breaking change
+    "NREL-PyDSS~=3.1.10",
     "filelock~=3.8",
     "matplotlib~=3.6",
-    "networkx~=2.8",
+    "networkx",
     "opendssdirect.py~=0.8.4",
     "openpyxl~=3.0",
-    "pandas >= 2, < 3",
-    "pydantic~=2.5.2",
+    "pandas >= 2, < 4",
+    "pydantic >= 2, < 3",
     "seaborn~=0.12.1",
-    "scikit-learn >= 1.1, < 1.4",  # 1.4 removes the parameter affinity from AgglomerativeClustering
+    "scikit-learn>=1.5.0",
     "sqlalchemy~=1.4",
     "toml~=0.10.0",
 ]
@@ -98,7 +98,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     maintainer_email="daniel.thom@nrel.gov",
-    url="https://github.com/NREL/disco",
+    url="https://github.com/NatLabRockies/disco",
     packages=find_packages(),
     package_dir={"disco": "disco"},
     entry_points={

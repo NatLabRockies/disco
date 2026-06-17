@@ -3,7 +3,7 @@ import logging
 
 import opendssdirect as dss
 from opendssdirect._version import __version__ as opendssdirect_version
-from PyDSS import __version__ as pydss_version
+from pydss import __version__ as pydss_version
 from jade.jobs.job_configuration_factory import create_config_from_file
 from disco.extensions.pydss_simulation.pydss_configuration import PyDssConfiguration
 from disco.extensions.pydss_simulation.pydss_simulation import PyDssSimulation

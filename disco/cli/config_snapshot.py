@@ -11,8 +11,8 @@ import click
 from jade.common import CONFIG_FILE
 from jade.loggers import setup_logging
 from jade.utils.utils import load_data
-from PyDSS.common import SnapshotTimePointSelectionMode
-from PyDSS.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
+from pydss.common import SnapshotTimePointSelectionMode
+from pydss.reports.pv_reports import PF1_SCENARIO, CONTROL_MODE_SCENARIO
 
 from disco.enums import SimulationType, AnalysisType
 from disco.extensions.pydss_simulation.pydss_configuration import PyDssConfiguration
