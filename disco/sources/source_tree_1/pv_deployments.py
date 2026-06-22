@@ -226,14 +226,16 @@ class PVDSSInstance:
             flag = dss.Loads.Next()
         return result
 
-    def get_customer_distance(self) -> SimpleNamespace:
+    def get_customer_distance(self, max_bus_voltage: float) -> SimpleNamespace:
         """Return custmer distance"""
         result = SimpleNamespace(load_distance={}, bus_distance={})
         flag = dss.Loads.First()
         while flag > 0:
             dss.Circuit.SetActiveBus(dss.Properties.Value("bus1"))
-            result.load_distance[dss.Loads.Name()] = dss.Bus.Distance()
-            result.bus_distance[dss.Properties.Value("bus1")] = dss.Bus.Distance()
+            kvbase = dss.Bus.kVBase()
+            if kvbase <= max_bus_voltage:
+                result.load_distance[dss.Loads.Name()] = dss.Bus.Distance()
+                result.bus_distance[dss.Properties.Value("bus1")] = dss.Bus.Distance()
             flag = dss.Loads.Next()
         return result
 
@@ -346,7 +348,7 @@ class PVScenarioGeneratorBase(abc.ABC):
                 # is incorrect.
                 # unidecode is no longer being installed with disco.
                 # pvdss_instance.convert_to_ascii()
-                pvdss_instance.disable_loadshapes_redirect()
+                # pvdss_instance.disable_loadshapes_redirect()
                 pvdss_instance.load_feeder()
                 flag = pvdss_instance.ensure_energy_meter()
                 if flag:
@@ -356,7 +358,7 @@ class PVScenarioGeneratorBase(abc.ABC):
             raise
         return pvdss_instance
 
-    def deploy_all_pv_scenarios(self) -> dict:
+    def deploy_all_pv_scenarios(self, max_bus_voltage, **kwargs) -> dict:
         """Given a feeder path, generate all PV scenarios for the feeder"""
         feeder_name = self.get_feeder_name()
         pvdss_instance = self.load_pvdss_instance()
@@ -371,8 +373,15 @@ class PVScenarioGeneratorBase(abc.ABC):
             )
 
         # combined bus distance
-        customer_distance = pvdss_instance.get_customer_distance()
+        customer_distance = pvdss_instance.get_customer_distance(max_bus_voltage)
         highv_buses = pvdss_instance.get_highv_buses()
+
+        # Remove redundant buses from highv_buses
+        highv_buses.hv_bus_distance = {
+            bus: dist for bus, dist in highv_buses.hv_bus_distance.items()
+            if bus not in customer_distance.bus_distance
+        }
+
         combined_bus_distance = pvdss_instance.combine_bus_distances(customer_distance, highv_buses)
         if max(combined_bus_distance.values()) == 0:
             logger.warning(
@@ -420,9 +429,9 @@ class PVScenarioGeneratorBase(abc.ABC):
                     bus_kv=highv_buses.bus_kv,
                     pv_records=pv_records,
                     penetration=penetration,
-                    sample=sample
+                    sample=sample,
                 )
-                existing_pv, pv_records = self.deploy_pv_scenario(data)
+                existing_pv, pv_records = self.deploy_pv_scenario(data, **kwargs)
 
         return feeder_stats.__dict__
 
@@ -456,7 +465,7 @@ class PVScenarioGeneratorBase(abc.ABC):
         pv_systems_file = os.path.join(penetration_path, PV_SYSTEMS_FILENAME)
         return pv_systems_file
 
-    def deploy_pv_scenario(self, data: SimpleNamespace) -> dict:
+    def deploy_pv_scenario(self, data: SimpleNamespace, **kwargs) -> dict:
         """Generate PV deployments dss file in scenario
 
         Parameters
@@ -496,7 +505,7 @@ class PVScenarioGeneratorBase(abc.ABC):
                             if base_min_pv_size > 0:
                                 continue
                             min_pv_size = existing_pv[bus]
-                            max_pv_size = self.get_maximum_pv_size(bus, data)
+                            max_pv_size = self.get_maximum_pv_size(bus, data, **kwargs)
                             random_pv_size = self.generate_pv_size_from_pdf(min_pv_size, max_pv_size)
                             pv_size = min(random_pv_size, min_pv_size + remaining_pv_to_install)
                             pv_added_capacity = pv_size - min_pv_size
@@ -546,7 +555,7 @@ class PVScenarioGeneratorBase(abc.ABC):
                     if (base_min_pv_size > 0 or min_pv_size > 0) and (not self.config.pv_upscale):
                         pass
                     else:
-                        max_pv_size = self.get_maximum_pv_size(picked_candidate, data)
+                        max_pv_size = self.get_maximum_pv_size(picked_candidate, data, **kwargs)
                         random_pv_size = self.generate_pv_size_from_pdf(0, max_pv_size)
                         pv_size = min(random_pv_size, remaining_pv_to_install)
                         pv_string = self.add_pv_string(picked_candidate, pv_type.value, pv_size, pv_string)
@@ -634,8 +643,11 @@ class PVScenarioGeneratorBase(abc.ABC):
 
     @staticmethod
     def generate_pv_size_from_pdf(min_size: float, max_size: float, pdf: Sequence = None) -> float:
-        # TODO: A placeholder function for later update
-        pv_size = max_size
+        if pdf is None:
+            pv_size = random.uniform(min_size, max_size)
+        else:
+            # TODO: A placeholder function for later update
+            pv_size = max_size
         return pv_size
 
     def add_pv_string(self, bus: str, pv_type: str, pv_size: float, pv_string: str) -> str:
@@ -696,6 +708,10 @@ class PVScenarioGeneratorBase(abc.ABC):
 
     def get_pv_bus_subset(self, bus_distance: dict, subset_idx: int, priority_buses: list) -> list:
         """Return candidate buses"""
+        if not bus_distance:
+            logger.warning("bus_distance is empty. Returning an empty candidate_bus_array.")
+            return []
+    
         max_dist = max(bus_distance.values())
         min_dist = min(bus_distance.values())
         if self.config.placement == Placement.CLOSE.value:
@@ -977,7 +993,8 @@ class LargePVScenarioGenerator(PVScenarioGeneratorBase):
 
     @classmethod
     def get_maximum_pv_size(cls, bus: str, data: SimpleNamespace, **kwargs) -> int:
-        max_bus_pv_size = 100 * random.randint(1, 50)
+        upper_bound = kwargs.get('large_pv_upper_bound', 50)
+        max_bus_pv_size = 100 * random.randint(1, upper_bound)
         return max_bus_pv_size
 
 
@@ -1002,14 +1019,17 @@ class SmallPVScenarioGenerator(PVScenarioGeneratorBase):
         customer_annual_kwh = kwargs.get("customer_annual_kwh", {})
         annual_sun_hours = kwargs.get("annual_sun_hours", None)
 
-        pv_size_array = [max_load_factor * data.bus_totalload[bus]]
-        if roof_area and pv_efficiency:
-            value = roof_area[bus] * pv_efficiency
-            pv_size_array.append(value)
-        if customer_annual_kwh and annual_sun_hours:
-            value = customer_annual_kwh[bus] / annual_sun_hours
-            pv_size_array.append(value)
-        max_bus_pv_size = min(pv_size_array)
+        if 'small_pv_upper_bound' in kwargs:
+            max_bus_pv_size = kwargs['small_pv_upper_bound']
+        else:
+            pv_size_array = [max_load_factor * data.bus_totalload[bus]]
+            if roof_area and pv_efficiency:
+                value = roof_area[bus] * pv_efficiency
+                pv_size_array.append(value)
+            if customer_annual_kwh and annual_sun_hours:
+                value = customer_annual_kwh[bus] / annual_sun_hours
+                pv_size_array.append(value)
+            max_bus_pv_size = min(pv_size_array)
         return max_bus_pv_size
 
 
@@ -1240,9 +1260,6 @@ class PVDataManager(PVDataStorage):
         super().__init__(input_path, hierarchy, config)
 
     def redirect(self, input_path: str) -> bool:
-        """Given a path, update the master file by redirecting PVShapes.dss"""
-        self._copy_pv_shapes_file(input_path)
-        
         master_file = os.path.join(input_path, self.config.master_filename)
         if not os.path.exists(master_file):
             raise FileNotFoundError(f"{self.config.master_filename} not found in {input_path}")
@@ -1266,30 +1283,6 @@ class PVDataManager(PVDataStorage):
         with open(master_file, "w") as fw:
             fw.writelines(data)
         return True
-
-    def _copy_pv_shapes_file(self, input_path: str) -> None:
-        """Copy PVShapes.dss file from source to feeder/substatation directories"""
-        input_path  = Path(input_path)
-        # NOTE: Coordinate different path patterns among different cities
-        if "solar_none_batteries_none_timeseries" in str(input_path):
-            index = 3 if input_path.parent.name == "opendss" else 4
-        else:
-            index = 4 if input_path.parent.name == "opendss" else 5
-        src_file = input_path.parents[index] / "pv-profiles" / PV_SHAPES_FILENAME
-        if not src_file.exists():
-            raise ValueError("PVShapes.dss file does not exist - " + str(src_file))
-        dst_file = input_path / PV_SHAPES_FILENAME
-        
-        with open(src_file, "r") as fr, open(dst_file, "w") as fw:
-            new_lines = []
-            for line in fr.readlines():
-                pv_profile = re.findall(r"file=[a-zA-Z0-9\-\_\/\.]*", line)[0]
-                city_path = Path(os.path.sep.join([".."] * (index + 1)))
-                relative_pv_profile = city_path / "pv-profiles" / os.path.basename(pv_profile)
-                relative_pv_profile = "file=" + str(relative_pv_profile)
-                new_line = line.replace(pv_profile, relative_pv_profile)
-                new_lines.append(new_line)
-            fw.writelines(new_lines)
 
     def redirect_substation_pv_shapes(self) -> None:
         """Run PVShapes redirect in substation directories in parallel"""
@@ -1399,8 +1392,7 @@ class PVDataManager(PVDataStorage):
             load_lines = fr.readlines()
             rekeyed_load_dict = self.build_load_dictionary(load_lines)
             updated_lines = self.update_loads(load_lines, rekeyed_load_dict)
-            new_lines = self.strip_pv_profile(updated_lines)
-            fw.writelines(new_lines)
+            fw.writelines(updated_lines)
         logger.info("Loads transformed - '%s'.", loads_file)
     
     def restore_loads_file(self, original_loads_file: str) -> bool:
@@ -1433,19 +1425,6 @@ class PVDataManager(PVDataStorage):
         except Exception:
             pass
         return True
-    
-    def strip_pv_profile(self, load_lines: list) -> list:
-        """To strip 'yearly=<pv-profile>' from load lines during PV deployments"""
-        regex = re.compile(r"\syearly=\S+", flags=re.IGNORECASE)
-        new_lines = []
-        for line in load_lines:
-            match = regex.search(line.strip())
-            if not match:
-                new_lines.append(line)
-            else:
-                line = "".join(line.split(match.group(0)))
-                new_lines.append(line)
-        return new_lines
     
     def get_attribute(self, line: str, attribute_id: str) -> str:
         """
@@ -1546,7 +1525,8 @@ class PVDataManager(PVDataStorage):
                 kv = v["kv"]
                 phases = v["phases"]
             
-            lowered_line = lines[k].lower()
+            #lowered_line = lines[k].lower()
+            lowered_line = lines[k]
             lowered_line = lowered_line.replace(f"kv={self.get_attribute(lines[k], 'kv=')}", f"kv={kv}")
             lowered_line = lowered_line.replace(f"phases={self.get_attribute(lines[k], 'phases=')}", f"phases={phases}")
             if "kw=" in lowered_line:
@@ -1584,7 +1564,7 @@ class PVDeploymentManager(PVDataStorage):
         """
         super().__init__(input_path, hierarchy, config)
 
-    def generate_pv_deployments(self) -> dict:
+    def generate_pv_deployments(self, max_bus_voltage: float = 1, **kwargs) -> dict:
         """Given input path, generate pv deployments"""
         summary = {}
         feeder_paths = self.get_feeder_paths()
@@ -1594,7 +1574,7 @@ class PVDeploymentManager(PVDataStorage):
                 "Set initial integer seed %s for PV deployments on feeder - %s",
                 self.config.random_seed, feeder_path
             )
-            feeder_stats = generator.deploy_all_pv_scenarios()
+            feeder_stats = generator.deploy_all_pv_scenarios(max_bus_voltage, **kwargs)
             summary[feeder_path] = feeder_stats
         return summary
 
