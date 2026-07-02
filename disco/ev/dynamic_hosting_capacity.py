@@ -5,7 +5,7 @@ from datetime import datetime
 from .config import Feeder, EVHostingCapacityConfig
 from .hosting_capacity import EVHostingCapacity
 from .dynamic_hc_model import build_dynamic_hc_model, datetime_to_dss_time
-from .dynamic_results import merge_and_range, DynamicEVHostingCapacityResults
+from .dynamic_results import merge_timestamp_hosting_capacity, DynamicEVHostingCapacityResults
 
 
 class DynamicEVHostingCapacity:
@@ -20,10 +20,26 @@ class DynamicEVHostingCapacity:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         self.feeder.validate()
+        
+        if not self.timestamps:
+            raise ValueError("Dynamic EV HC requires at least one timestamp.")
+
+        labels = []
+        for ts in self.timestamps:
+            if not isinstance(ts, datetime):
+                raise TypeError(
+                    f"timestamps must contain datetime objects, got {type(ts).__name__}: {ts!r}"
+                )
+            labels.append(ts.strftime("%Y%m%d_%H%M"))
+
+        duplicate_labels = {label for label in labels if labels.count(label) > 1}
+        if duplicate_labels:
+            raise ValueError(
+                f"Duplicate timestamp labels are not allowed: {sorted(duplicate_labels)}"
+            )
 
         dfs, per_ts = {}, {}
-        for ts in self.timestamps:
-            label = ts.strftime("%Y%m%d_%H%M")
+        for ts, label in zip(self.timestamps, labels):
             ts_dir = output_dir / label
             elapsed = datetime_to_dss_time(ts.year, ts.month, ts.day, ts.hour, ts.minute)
 
@@ -37,7 +53,7 @@ class DynamicEVHostingCapacity:
             dfs[label] = res.hosting_capacity()     # Bus, Initial_kW, Hosting_capacity_kW, Binding_constraint
             print(f"[{label}] done")
 
-        merged = merge_and_range(dfs, key_cols=["Bus"])
+        merged = merge_timestamp_hosting_capacity(dfs, key_cols=["Bus"])
         merged.to_csv(output_dir / "dynamic_ev_hc.csv", index=False)
         return DynamicEVHostingCapacityResults(merged, per_ts, output_dir)
 

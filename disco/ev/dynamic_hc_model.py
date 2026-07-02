@@ -198,6 +198,16 @@ def build_dynamic_hc_model(master_dss, elapsed_hours, output_folder, label):
     dss.Solution.Seconds(int((elapsed_hours % 1) * 3600))
     dss.Text.Command("Set Number=1")
     dss.Solution.Solve()
+
+    if not dss.Solution.Converged():
+        raise RuntimeError(
+            f"OpenDSS did not converge while building dynamic HC snapshot "
+            f"for {label} at elapsed_hours={elapsed_hours}"
+        )
+
+
+
+
     solved_loads = get_solved_load_powers()
 
     # --- write frozen static loads + redirected master, then return master path ---
