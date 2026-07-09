@@ -6,7 +6,7 @@ from functools import reduce
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
+from .results import EVHostingCapacityResults
 
 def merge_timestamp_hosting_capacity(dfs: dict, key_cols) -> pd.DataFrame:
     """Build the final dynamic HC table from per-timestamp HC results.
@@ -50,6 +50,41 @@ class DynamicEVHostingCapacityResults:
     def dynamic_hosting_capacity(self) -> pd.DataFrame:
         return self._merged
 
+    @classmethod
+    def from_output_dir(cls, output_dir):
+        output_dir = Path(output_dir)
+
+        per_ts_results = {}
+        hc_tables = {}
+
+        for ts_dir in sorted(output_dir.iterdir()):
+            if not ts_dir.is_dir():
+                continue
+            if not (ts_dir / "disco_ev_hc.db").exists():
+                continue
+
+            label = ts_dir.name
+            result = EVHostingCapacityResults.from_db(ts_dir)
+
+            per_ts_results[label] = result
+            hc_tables[label] = result.hosting_capacity()
+
+        if not hc_tables:
+            raise FileNotFoundError(
+                f"No timestamp result folders with disco_ev_hc.db found in {output_dir}"
+            )
+
+        merged = merge_timestamp_hosting_capacity(hc_tables, key_cols=["Bus"])
+
+        return cls(
+            merged_df=merged,
+            per_ts_results=per_ts_results,
+            output_dir=output_dir,
+        )
+    
+    
+    
+    
     def _dynamic_hc_plot_columns(self) -> list[str]:
         return [
             c for c in self._merged.columns
@@ -70,8 +105,8 @@ class DynamicEVHostingCapacityResults:
         self,
         columns: list[str] | None = None,
         colorscale: str = "Turbo_r",
-        width: int = 900,
-        height: int = 650,
+        width: int = 650,
+        height: int = 450,
     ):
         """Plot dynamic EV HC as a branch map with a timestamp dropdown."""
         try:
@@ -178,24 +213,32 @@ class DynamicEVHostingCapacityResults:
                 method="update",
                 args=[
                     {"visible": visible},
-                    {"title": f"Dynamic EV Hosting Capacity - {label}"},
+                    {"title": dict(
+                        text=f"Dynamic EV Hosting Capacity - {label}",
+                        x=0.5,
+                        xanchor="center",
+                    )},
                 ],
             ))
 
         initial_label = columns[0].removeprefix("Hosting_capacity_kW_")
         fig.update_layout(
-            title=f"Dynamic EV Hosting Capacity - {initial_label}",
+            title=dict(
+                text=f"Dynamic EV Hosting Capacity - {initial_label}",
+                x=0.5,
+                xanchor="center",
+            ),
             width=width,
             height=height,
             xaxis=dict(visible=False),
             yaxis=dict(visible=False, scaleanchor="x", scaleratio=1),
             plot_bgcolor="white",
-            margin=dict(l=20, r=20, t=130, b=20),
+            margin=dict(l=5, r=5, t=65, b=5),
             updatemenus=[dict(
                 buttons=buttons,
                 direction="down",
                 x=0.0,
-                y=1.22,
+                y=1.10,
                 xanchor="left",
                 yanchor="top",
             )],
@@ -206,6 +249,7 @@ class DynamicEVHostingCapacityResults:
         self,
         ax=None,
         max_labels: int = 20,
+        sample_every: int = 10,
     ):
         """Plot min-to-max dynamic HC band by bus rank from the substation."""
         bus, _ = self._dynamic_plot_data()
@@ -229,17 +273,36 @@ class DynamicEVHostingCapacityResults:
         ).copy()
         plot_df = plot_df.sort_values("Distance").reset_index(drop=True)
         plot_df["Distance_rank"] = plot_df.index + 1
+
+        if sample_every and sample_every > 1:
+            plot_df = plot_df.iloc[::sample_every].copy()
+
         if ax is None:
             _, ax = plt.subplots(figsize=(10, 4))
 
-        ax.fill_between(
+        green_height = plot_df["Hosting_capacity_kW_Min"]
+        yellow_height = plot_df["Hosting_capacity_kW_Max"] - plot_df["Hosting_capacity_kW_Min"]
+
+        ax.bar(
             plot_df["Distance_rank"],
-            plot_df["Hosting_capacity_kW_Min"],
-            plot_df["Hosting_capacity_kW_Max"],
-            color="#4C78A8",
-            alpha=0.5,
-            label="Min-Max range",
+            green_height,
+            bottom=0,
+            width=8.0,
+            color="#2F855A",
+            alpha=0.75,
+            label="0 to Min HC",
         )
+
+        ax.bar(
+            plot_df["Distance_rank"],
+            yellow_height,
+            bottom=green_height,
+            width=8.0,
+            color="#F2C94C",
+            alpha=0.75,
+            label="Min to Max HC",
+        )
+
         ax.set_xlabel("Bus rank by distance from substation")
         ax.set_ylabel("Dynamic hosting capacity (kW)")
         ax.set_title("Dynamic EV HC by Distance")
@@ -306,3 +369,4 @@ class DynamicEVHostingCapacityResults:
 
     def __repr__(self) -> str:
         return self.summary()
+
