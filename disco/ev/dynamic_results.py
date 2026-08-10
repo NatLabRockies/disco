@@ -5,6 +5,7 @@ from pathlib import Path
 from functools import reduce
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from .results import EVHostingCapacityResults
 
@@ -138,11 +139,29 @@ class DynamicEVHostingCapacityResults:
         if cmin == cmax:
             cmax = cmin + 1.0
 
-        def branch_color(value):
-            if pd.isna(value):
-                return "rgba(180,180,180,0.45)"
-            scaled = max(0.0, min(1.0, (float(value) - cmin) / (cmax - cmin)))
-            return sample_colorscale(colorscale, scaled)[0]
+        # One trace per line segment would mean n_segments x n_timestamps traces, which
+        # makes the dropdown restyle thousands of objects per click. Instead, quantize
+        # the colors into a fixed number of bins so segments sharing a bin can be merged
+        # into a single trace (NaN-separated), giving n_bins traces per timestamp.
+        n_bins = 16
+        bin_colors = sample_colorscale(
+            colorscale, [i / (n_bins - 1) for i in range(n_bins)]
+        )
+        missing_color = "rgba(180,180,180,0.45)"
+
+        # Resolve both endpoints of every segment in one shot rather than per-row .at lookups.
+        coords = xy[["X", "Y"]]
+        seg = (
+            lines.merge(coords, left_on="From_Bus", right_index=True, how="inner")
+            .merge(
+                coords,
+                left_on="To_Bus",
+                right_index=True,
+                how="inner",
+                suffixes=("_a", "_b"),
+            )
+            .dropna(subset=["X_a", "Y_a", "X_b", "Y_b"])
+        )
 
         fig = go.Figure()
         trace_groups = []
@@ -152,28 +171,43 @@ class DynamicEVHostingCapacityResults:
             group_indices = []
             label = column.removeprefix("Hosting_capacity_kW_")
 
-            for _, line in lines.iterrows():
-                a, b = line["From_Bus"], line["To_Bus"]
-                if a not in xy.index or b not in xy.index:
-                    continue
-                if pd.isna(xy.at[a, "X"]) or pd.isna(xy.at[a, "Y"]):
-                    continue
-                if pd.isna(xy.at[b, "X"]) or pd.isna(xy.at[b, "Y"]):
-                    continue
+            # Color each segment by its to-bus hosting capacity, bucketed into n_bins.
+            seg_values = xy[column].reindex(seg["To_Bus"]).to_numpy(dtype=float)
+            scaled = (seg_values - cmin) / (cmax - cmin)
+            bin_index = np.clip(scaled * n_bins, 0, n_bins - 1)
+            bin_index = np.where(np.isnan(seg_values), -1, bin_index).astype(int)
 
-                value = xy.at[b, column]
-                fig.add_trace(go.Scatter(
-                    x=[xy.at[a, "X"], xy.at[b, "X"]],
-                    y=[xy.at[a, "Y"], xy.at[b, "Y"]],
+            xa = seg["X_a"].to_numpy(dtype=float)
+            ya = seg["Y_a"].to_numpy(dtype=float)
+            xb = seg["X_b"].to_numpy(dtype=float)
+            yb = seg["Y_b"].to_numpy(dtype=float)
+            nan = np.full(len(seg), np.nan)
+
+            # Interleave as [a, b, NaN, a, b, NaN, ...] so one trace draws many
+            # disconnected segments: NaN lifts the pen between them.
+            xs = np.ravel(np.column_stack([xa, xb, nan]))
+            ys = np.ravel(np.column_stack([ya, yb, nan]))
+
+            for b_idx in range(-1, n_bins):
+                mask = bin_index == b_idx
+                if not mask.any():
+                    continue
+                point_mask = np.repeat(mask, 3)
+                fig.add_trace(go.Scattergl(
+                    x=xs[point_mask],
+                    y=ys[point_mask],
                     mode="lines",
-                    line=dict(color=branch_color(value), width=3),
+                    line=dict(
+                        color=missing_color if b_idx < 0 else bin_colors[b_idx],
+                        width=3,
+                    ),
                     hoverinfo="skip",
                     showlegend=False,
                     visible=visible,
                 ))
                 group_indices.append(len(fig.data) - 1)
 
-            node_df = bus.dropna(subset=["X", "Y"])
+            node_df = bus.dropna(subset=["X", "Y", column])
             fig.add_trace(go.Scatter(
                 x=node_df["X"],
                 y=node_df["Y"],

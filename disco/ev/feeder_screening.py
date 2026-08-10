@@ -13,6 +13,7 @@ import fileinput
 import itertools
 import logging
 import os
+import re
 import shutil
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -55,13 +56,44 @@ def run(
     # plot_heatmap: bool,
     output_dir: Path,
     num_cpus=None,
-    screen_all_buses: bool = False,
+    screen_all_buses: bool = True,
 ):
+
+    from disco.ev.dynamic_hc_model import _find_loads_file
 
     # Build a snapshot-mode copy of the master as a sibling of the original
     # (so relative `Redirect Lines.dss` etc. still resolve). Original is never modified.
     original_lines = master_file.read_text().splitlines()
-    kept_lines = [ln for ln in original_lines if not ln.strip().lower().startswith("solve")]
+    kept_lines = [ln for ln in original_lines
+                  if not ln.strip().lower().startswith(("solve", "export", "plot"))]
+
+    # If loads reference time-series shapes, strip the shape attributes into a
+    # static loads copy and skip parsing the (then unused) loadshape file —
+    # snapshot mode ignores yearly= anyway, so results are unchanged.
+    static_loads = None
+    try:
+        loads_file = _find_loads_file(master_file)
+    except FileNotFoundError:
+        loads_file = None   # loads defined inline in the master, or no loads at all
+    if loads_file is not None and re.search(
+            r'\b(yearly|daily|duty)\s*=', loads_file.read_text(), re.IGNORECASE):
+        static_loads = master_file.with_name(f"Loads_static_{os.getpid()}.dss")
+        static_loads.write_text(re.sub(
+            r'\s*(yearly|daily|duty)=[^\s]+', '',
+            loads_file.read_text(), flags=re.IGNORECASE))
+
+        loads_name = loads_file.name.lower()
+        rewritten = []
+        for ln in kept_lines:
+            m = re.match(r'\s*redirect\s+"?([^"\s]+\.dss)"?', ln, re.IGNORECASE)
+            if m and Path(m.group(1)).name.lower() == loads_name:
+                rewritten.append(f'Redirect "{static_loads.name}"')
+            elif m and "loadshape" in Path(m.group(1)).name.lower():
+                rewritten.append("!" + ln)
+            else:
+                rewritten.append(ln)
+        kept_lines = rewritten
+
     kept_lines.append("Solve mode=snapshot")
 
     snapshot_master = master_file.with_name(f"{master_file.stem}_snapshot_{os.getpid()}.dss")
@@ -90,6 +122,8 @@ def run(
         #os.rename(backup_file, master_file)
         #shutil.move(str(backup_file), str(master_file))
         snapshot_master.unlink(missing_ok=True)
+        if static_loads is not None:
+            static_loads.unlink(missing_ok=True)
 
 
 def _run(
@@ -107,7 +141,7 @@ def _run(
     # plot_heatmap: bool,
     output_dir: Path,
     num_cpus=None,
-    screen_all_buses: bool = False,
+    screen_all_buses: bool = True,
 ):
     db_path = output_dir / "disco_ev_hc.db"
     conn = sqlite3.connect(db_path)
@@ -282,6 +316,8 @@ def circuit_has_violations(lower_voltage_limit, upper_voltage_limit) -> bool:
         return True
     
     v = np.array(dss.Circuit.AllBusMagPu())
+    v = v[v > 0.1]   # de-energized nodes (open ties, isolated islands) are not voltage violations
+
     return np.any(v > upper_voltage_limit) or np.any(v < lower_voltage_limit)
 
 
@@ -332,6 +368,27 @@ def get_loads() -> list[dict]:
 
     return loads
 
+def get_service_xfmr_secondary_buses(max_kv_ln: float = 1.0) -> set:
+    """Stripped bus names on the LV side of service transformers.
+
+    Winding 1 is the primary; windings 2..n are secondaries. The kV-base
+    filter drops MV secondary windings (e.g. the substation transformer).
+    """
+    candidates = set()
+    flag = dss.Transformers.First()
+    while flag:
+        for b in dss.CktElement.BusNames()[1:]:
+            candidates.add(b.split(".")[0].lower())
+        flag = dss.Transformers.Next()
+
+    buses = set()
+    for bus in candidates:
+        dss.Circuit.SetActiveBus(bus)
+        if 0 < dss.Bus.kVBase() < max_kv_ln:
+            buses.add(bus)
+    return buses
+
+
 def get_probe_loads(exclude_source: bool = True) -> list[dict]:
     """Add a small probe Load at every non-source bus on top of any existing
     loads. The probe's physical kW (1.0) is a placeholder — the bisector
@@ -352,7 +409,7 @@ def get_probe_loads(exclude_source: bool = True) -> list[dict]:
         real_flag = dss.Loads.Next()
 
       
-    
+    xfmr_lv_buses = get_service_xfmr_secondary_buses()
     
     probes = []
     for bus in dss.Circuit.AllBusNames():
@@ -374,6 +431,9 @@ def get_probe_loads(exclude_source: bool = True) -> list[dict]:
             )
             continue
 
+        if kv_ln < 1.0 and bus_lower not in xfmr_lv_buses:
+            continue
+        
         nphases = len(nodes)
         kv = kv_ln * np.sqrt(3) if nphases == 3 else kv_ln
 

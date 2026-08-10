@@ -4,7 +4,7 @@ from datetime import datetime
 
 from .config import Feeder, EVHostingCapacityConfig
 from .hosting_capacity import EVHostingCapacity
-from .dynamic_hc_model import build_dynamic_hc_model, datetime_to_dss_time
+from .dynamic_hc_model import build_dynamic_hc_models, datetime_to_dss_time
 from .dynamic_results import merge_timestamp_hosting_capacity, DynamicEVHostingCapacityResults
 
 
@@ -38,20 +38,26 @@ class DynamicEVHostingCapacity:
                 f"Duplicate timestamp labels are not allowed: {sorted(duplicate_labels)}"
             )
 
-        dfs, per_ts = {}, {}
-        for ts, label in zip(self.timestamps, labels):
-            ts_dir = output_dir / label
-            elapsed = datetime_to_dss_time(ts.year, ts.month, ts.day, ts.hour, ts.minute)
+        # Phase 1: freeze all timestamps with one compile (loadshapes parsed once)
+        specs = [
+            (datetime_to_dss_time(ts.year, ts.month, ts.day, ts.hour, ts.minute), label)
+            for ts, label in zip(self.timestamps, labels)
+        ]
+        masters = build_dynamic_hc_models(self.feeder.master_file, specs, output_dir)
 
-            master_ts = build_dynamic_hc_model(self.feeder.master_file, elapsed, ts_dir, label)
+        # Phase 2: screen each frozen model
+        dfs, per_ts = {}, {}
+        for label in labels:
+            ts_dir = output_dir / label
             res = EVHostingCapacity(
-                Feeder(master_ts, name=f"{self.feeder.name}_{label}"),
+                Feeder(masters[label], name=f"{self.feeder.name}_{label}"),
                 num_cpus=self.num_cpus, config=self.config,
             ).run(ts_dir)
 
             per_ts[label] = res
             dfs[label] = res.hosting_capacity()     # Bus, Initial_kW, Hosting_capacity_kW, Binding_constraint
             print(f"[{label}] done")
+
 
         merged = merge_timestamp_hosting_capacity(dfs, key_cols=["Bus"])
         merged.to_csv(output_dir / "dynamic_ev_hc.csv", index=False)

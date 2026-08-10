@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Build a feeder model frozen at a specific time point, for Dynamic EV Hosting Capacity.
+"""Build feeder models frozen at specific time points, for Dynamic EV Hosting Capacity.
 
-This module is used ONLY by the Dynamic HC path. It solves the feeder in Yearly mode
-at a chosen hour to MEASURE the loadshape-resolved load powers, then writes a static
-model (loadshapes stripped, kW/kvar baked to the hour-H values) that the existing
-snapshot HC engine can run as-is. Normal (single-point) HC does not import this module.
+The feeder is compiled ONCE (loadshapes parsed once); for each requested timestamp
+the circuit is then solved in Yearly mode at that hour to MEASURE the
+loadshape-resolved load powers, and a static model is written (loadshape redirect
+commented out, yearly= attributes stripped, kW/kvar baked to that hour's values)
+that the snapshot HC engine can run as-is. The static HC path also imports
+``_find_loads_file`` from here for its loadshape-stripping prep.
 """
 
 import os
@@ -100,7 +102,8 @@ def create_snapshot_master(
         template_master,
         snapshot_master,
         new_loads_file,
-        original_loads_file):
+        original_loads_file,
+        strip_loadshapes=True):
     """Write a per-hour master that points at the frozen loads file.
 
     The snapshot master lives in a different folder than the original feeder, so
@@ -122,6 +125,12 @@ def create_snapshot_master(
             output.append(raw)
             continue
 
+        # neutralize embedded solves and export/plot commands —
+        # the HC engine issues its own solves
+        if re.match(r'(solve|export|plot)\b', stripped, re.IGNORECASE):
+            output.append("!" + raw)
+            continue
+
         m = re.match(r'(redirect|buscoords)\s+(\S+\.dss)\s*(.*)$', stripped, re.IGNORECASE)
         if not m:
             output.append(raw)
@@ -132,6 +141,14 @@ def create_snapshot_master(
         # the loads redirect -> point at the local frozen snapshot loads
         if cmd.lower() == "redirect" and Path(fname).name.lower() == original_loads_name:
             output.append(f'Redirect "{new_loads_file}"')
+            continue
+
+
+        # frozen loads carry literal kW/kvar and reference no shapes, so the
+        # loadshape file is dead weight — skip re-parsing it in every worker
+        if (strip_loadshapes and cmd.lower() == "redirect"
+                and "loadshape" in Path(fname).name.lower()):
+            output.append("!" + raw)
             continue
 
         # every other file reference -> absolute path into the original folder
@@ -178,42 +195,96 @@ def _find_loads_file(master_dss):
     )
 
 
-def build_dynamic_hc_model(master_dss, elapsed_hours, output_folder, label):
-    """Freeze the feeder at ``elapsed_hours`` and return the per-hour master path.
+# def build_dynamic_hc_model(master_dss, elapsed_hours, output_folder, label):
+#     """Freeze the feeder at ``elapsed_hours`` and return the per-hour master path.
 
-    Solves in Yearly mode at the given elapsed hour to measure the loadshape-resolved
-    load powers, then writes a static ``Loads_hour_<label>.dss`` (loadshapes stripped)
-    plus a redirected ``Master_hour_<label>.dss`` into ``output_folder``.
+#     Solves in Yearly mode at the given elapsed hour to measure the loadshape-resolved
+#     load powers, then writes a static ``Loads_hour_<label>.dss`` (loadshapes stripped)
+#     plus a redirected ``Master_hour_<label>.dss`` into ``output_folder``.
+#     """
+#     master_dss = Path(master_dss)
+#     output_folder = Path(output_folder)
+#     output_folder.mkdir(parents=True, exist_ok=True)
+#     loads_dss = _find_loads_file(master_dss)
+
+#     # --- transient yearly solve to MEASURE loads at hour H ---
+#     dss.Basic.ClearAll()
+#     dss.Text.Command(f"Compile [{master_dss}]")
+#     dss.Text.Command("Set Mode=Yearly")
+#     dss.Text.Command(f"Set Hour={int(elapsed_hours)}")
+#     dss.Solution.Seconds(int((elapsed_hours % 1) * 3600))
+#     dss.Text.Command("Set Number=1")
+#     dss.Solution.Solve()
+
+#     if not dss.Solution.Converged():
+#         raise RuntimeError(
+#             f"OpenDSS did not converge while building dynamic HC snapshot "
+#             f"for {label} at elapsed_hours={elapsed_hours}"
+#         )
+
+
+
+
+#     solved_loads = get_solved_load_powers()
+
+#     # --- write frozen static loads + redirected master, then return master path ---
+#     snapshot_loads = output_folder / f"Loads_hour_{label}.dss"
+#     snapshot_master = output_folder / f"Master_hour_{label}.dss"
+#     create_snapshot_loads(loads_dss, snapshot_loads, solved_loads)
+#     create_snapshot_master(master_dss, snapshot_master, snapshot_loads.name, loads_dss,
+#                            strip_loadshapes=True)
+#     print(f"Created dynamic HC model for {label} (elapsed_hours={elapsed_hours})")
+#     return snapshot_master
+
+
+def build_dynamic_hc_models(master_dss, timestamp_specs, output_root):
+    """Freeze the feeder at several time points with a SINGLE compile.
+
+    The loadshape CSVs are parsed once; each timestamp is then just a
+    Set Hour + one solve on the already-built circuit.
+
+    timestamp_specs: list of (elapsed_hours, label) tuples.
+    Returns {label: snapshot_master_path}.
     """
     master_dss = Path(master_dss)
-    output_folder = Path(output_folder)
-    output_folder.mkdir(parents=True, exist_ok=True)
+    output_root = Path(output_root)
+    output_root.mkdir(parents=True, exist_ok=True)
     loads_dss = _find_loads_file(master_dss)
 
-    # --- transient yearly solve to MEASURE loads at hour H ---
+    # sanitized measurement master: embedded Solve/Export/Plot commented out,
+    # loads redirect kept pointing at the ORIGINAL loads (shapes intact),
+    # every other file reference rewritten to an absolute path
+    measure_master = output_root / "Master_measure.dss"
+    create_snapshot_master(master_dss, measure_master, str(loads_dss.resolve()), loads_dss,
+                           strip_loadshapes=False)
+
     dss.Basic.ClearAll()
-    dss.Text.Command(f"Compile [{master_dss}]")
-    dss.Text.Command("Set Mode=Yearly")
-    dss.Text.Command(f"Set Hour={int(elapsed_hours)}")
-    dss.Solution.Seconds(int((elapsed_hours % 1) * 3600))
-    dss.Text.Command("Set Number=1")
-    dss.Solution.Solve()
-
-    if not dss.Solution.Converged():
-        raise RuntimeError(
-            f"OpenDSS did not converge while building dynamic HC snapshot "
-            f"for {label} at elapsed_hours={elapsed_hours}"
-        )
+    dss.Text.Command(f"Compile [{measure_master}]")
 
 
+    masters = {}
+    for elapsed_hours, label in timestamp_specs:
+        output_folder = output_root / label
+        output_folder.mkdir(parents=True, exist_ok=True)
 
+        dss.Text.Command("Set Mode=Yearly")
+        dss.Text.Command(f"Set Hour={int(elapsed_hours)}")
+        dss.Solution.Seconds(int((elapsed_hours % 1) * 3600))
+        dss.Text.Command("Set Number=1")
+        dss.Solution.Solve()
+        if not dss.Solution.Converged():
+            raise RuntimeError(
+                f"OpenDSS did not converge while building dynamic HC snapshot "
+                f"for {label} at elapsed_hours={elapsed_hours}"
+            )
 
-    solved_loads = get_solved_load_powers()
+        solved_loads = get_solved_load_powers()
+        snapshot_loads = output_folder / f"Loads_hour_{label}.dss"
+        snapshot_master = output_folder / f"Master_hour_{label}.dss"
+        create_snapshot_loads(loads_dss, snapshot_loads, solved_loads)
+        create_snapshot_master(master_dss, snapshot_master, snapshot_loads.name, loads_dss,
+                               strip_loadshapes=True)
+        print(f"Created dynamic HC model for {label} (elapsed_hours={elapsed_hours})")
+        masters[label] = snapshot_master
+    return masters
 
-    # --- write frozen static loads + redirected master, then return master path ---
-    snapshot_loads = output_folder / f"Loads_hour_{label}.dss"
-    snapshot_master = output_folder / f"Master_hour_{label}.dss"
-    create_snapshot_loads(loads_dss, snapshot_loads, solved_loads)
-    create_snapshot_master(master_dss, snapshot_master, snapshot_loads.name, loads_dss)
-    print(f"Created dynamic HC model for {label} (elapsed_hours={elapsed_hours})")
-    return snapshot_master
