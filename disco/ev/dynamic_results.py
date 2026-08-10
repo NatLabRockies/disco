@@ -193,7 +193,7 @@ class DynamicEVHostingCapacityResults:
                 if not mask.any():
                     continue
                 point_mask = np.repeat(mask, 3)
-                fig.add_trace(go.Scattergl(
+                fig.add_trace(go.Scatter(
                     x=xs[point_mask],
                     y=ys[point_mask],
                     mode="lines",
