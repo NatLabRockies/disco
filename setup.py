@@ -117,6 +117,7 @@ setup(
             "extensions/pydss_simulation/trained_lm_time_prediction.sav",
             "extensions/upgrade_simulation/upgrades/*.xlsx",
             "extensions/upgrade_simulation/upgrades/*.toml",
+            "extensions/upgrade_simulation/upgrades/*.json",
             "extensions/*.json",
             "postprocess/config/*.toml",
             "postprocess/toolbox/query_tool.ipynb",
